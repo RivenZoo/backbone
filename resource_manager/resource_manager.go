@@ -7,8 +7,8 @@ import (
 
 var (
 	errDuplicateResourceName = errors.New("duplicate resource name")
-	errUnsupportResourceType = errors.New("resource object must implements Closable")
-	errUnsupportCreatorFunc  = errors.New("resource creator must be func() T or func() (T, error), T must implements Closable")
+	errUnSupportResourceType = errors.New("resource object must implements Closable")
+	errUnSupportCreatorFunc  = errors.New("resource creator must be func() T or func() (T, error), T must implements Closable")
 )
 
 type Closable interface {
@@ -53,7 +53,7 @@ func (rc *ResourceContainer) RegisterResource(name string, object interface{}) {
 			rc.needToInitObjects = append(rc.needToInitObjects, initObj)
 		}
 	default:
-		panic(errUnsupportResourceType)
+		panic(errUnSupportResourceType)
 	}
 }
 
