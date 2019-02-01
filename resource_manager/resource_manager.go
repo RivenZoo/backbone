@@ -7,7 +7,8 @@ import (
 
 var (
 	errDuplicateResourceName = errors.New("duplicate resource name")
-	errUnsupportResourceType = errors.New("unsupport resource object type")
+	errUnsupportResourceType = errors.New("resource object must implements Closable")
+	errUnsupportCreatorFunc  = errors.New("resource creator must be func() T or func() (T, error), T must implements Closable")
 )
 
 type Closable interface {
@@ -15,27 +16,31 @@ type Closable interface {
 }
 
 type Initializable interface {
-	Closable
 	Init() error
 }
 
-type ResourceCreator struct {
-	// CreateFunc must be func() T or func() (T, error)
-	// T must be Closable or Initializable
-	CreateFunc interface{}
-	// Receiver is optional
-	// If set, it must be *T
-	Receiver interface{}
+type namedResourceCreator struct {
+	name string
+	ResourceCreator
 }
 
 type ResourceContainer struct {
-	resourceMap   map[string]Closable
-	initializable []Initializable
-	creators      []ResourceCreator
+	resourceMap       map[string]Closable
+	needToInitObjects []Initializable
+	creators          []namedResourceCreator
+}
+
+func NewResourceContainer() *ResourceContainer {
+	return &ResourceContainer{
+		resourceMap:       map[string]Closable{},
+		needToInitObjects: []Initializable{},
+		creators:          []namedResourceCreator{},
+	}
 }
 
 // RegisterResource register resource object by name.
-// Parameter object should be Closable or Initializable.
+// Parameter object should be Closable.
+// If object implements Initializable, Init will be called.
 // Panics if name is duplicated.
 func (rc *ResourceContainer) RegisterResource(name string, object interface{}) {
 	if _, ok := rc.resourceMap[name]; ok {
@@ -44,38 +49,65 @@ func (rc *ResourceContainer) RegisterResource(name string, object interface{}) {
 	switch obj := object.(type) {
 	case Closable:
 		rc.resourceMap[name] = obj
-	case Initializable:
-		rc.resourceMap[name] = nil
-		rc.initializable = append(rc.initializable, obj)
+		if initObj, ok := object.(Initializable); ok {
+			rc.needToInitObjects = append(rc.needToInitObjects, initObj)
+		}
 	default:
 		panic(errUnsupportResourceType)
 	}
 }
 
 // RegisterResource register resource creator by name.
-// Resource object created by CreateFunc when `Init` called.
+// Resource object created by CreateFunc when `ResourceContainer.Init` called.
 // If Receiver not nil, resource object will be assigned to Receiver.
 // Panics if name is duplicated.
 func (rc *ResourceContainer) RegisterCreator(name string, creator ResourceCreator) {
 	if _, ok := rc.resourceMap[name]; ok {
 		panic(errDuplicateResourceName)
 	}
-
+	creator.validate()
+	rc.creators = append(rc.creators, namedResourceCreator{
+		ResourceCreator: creator,
+		name:            name,
+	})
 }
 
 // GetResource return nil if no such resource provided.
-func (rc *ResourceContainer) GetResource(name string) interface{} {
-	return nil
+func (rc *ResourceContainer) GetResource(name string) Closable {
+	return rc.resourceMap[name]
 }
 
 // Init first create all resource objects by calling create func.
 // Then call Init if resource object is Initializable.
 // Panics if any error occurs.
 func (rc *ResourceContainer) Init() {
+	// first: create all resource objects
+	for _, creator := range rc.creators {
+		obj, err := creator.create()
+		if err != nil {
+			panic(err)
+		}
+		creator.setReceiver(obj)
+		rc.resourceMap[creator.name] = obj
+		if initObj, ok := obj.(Initializable); ok {
+			rc.needToInitObjects = append(rc.needToInitObjects, initObj)
+		}
+	}
+	// second: init all objects
+	for _, initObj := range rc.needToInitObjects {
+		if err := initObj.Init(); err != nil {
+			panic(err)
+		}
+	}
 	return
 }
 
 // Close all resource objects.
 func (rc *ResourceContainer) Close() {
+	for _, obj := range rc.resourceMap {
+		if err := obj.Close(); err != nil {
+			panic(err)
+		}
+	}
 	return
 }

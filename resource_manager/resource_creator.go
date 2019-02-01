@@ -56,5 +56,7 @@ func (c ResourceCreator) create() (Closable, error) {
 }
 
 func (c ResourceCreator) setReceiver(obj Closable) {
-	reflect.ValueOf(c.Receiver).Elem().Set(reflect.ValueOf(obj))
+	if c.Receiver != nil {
+		reflect.ValueOf(c.Receiver).Elem().Set(reflect.ValueOf(obj))
+	}
 }
