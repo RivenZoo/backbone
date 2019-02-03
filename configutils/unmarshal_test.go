@@ -29,10 +29,11 @@ kv:
   v1: "1"
 `)
 	dataSets := [][]byte{jsonData, tomlData, yamlData}
+	tp := []ConfigType{ConfigTypeJSON, ConfigTypeTOML, ConfigTypeYAML}
 	for i := range dataSets {
 		v := config{}
 		r := bytes.NewReader(dataSets[i])
-		err := Unmarshal(r, &v)
+		err := Unmarshal(r, &v, tp[i])
 		if assert.Nil(t, err) {
 			t.Log(v)
 		}
@@ -43,7 +44,7 @@ kv:
 	{
 		r := bytes.NewReader(jsonData)
 		var v *config
-		err := Unmarshal(r, &v)
+		err := Unmarshal(r, &v, ConfigTypeJSON)
 		assert.Nil(t, err)
 		t.Log(*v)
 	}
@@ -51,14 +52,31 @@ kv:
 	{
 		r := bytes.NewReader(jsonData)
 		v := config{}
-		err := Unmarshal(r, v)
-		assert.Equal(t, errWrongUnmarshalReceiver, err)
+		err := Unmarshal(r, v, ConfigTypeJSON)
+		assert.NotNil(t, err)
 	}
 
 	{
 		r := bytes.NewReader(jsonData[:1])
 		v := config{}
-		err := Unmarshal(r, &v)
-		assert.Equal(t, errUnsupportFormat, err)
+		err := Unmarshal(r, &v, ConfigTypeJSON)
+		assert.NotNil(t, err)
 	}
+}
+
+func TestUnmarshal2(t *testing.T) {
+	type config struct {
+		Name string            `yaml:"name"`
+		ID   int               `yaml:"id"`
+		KV   map[string]string `yaml:"kv"`
+	}
+
+	// wrong json format
+	jsonData := []byte(`{"Name": "config", "ID": 1234, "KV": {"v1": "1"}, }`)
+
+	v := config{}
+	r := bytes.NewReader(jsonData)
+	err := Unmarshal(r, &v, ConfigTypeJSON)
+	assert.NotNil(t, err)
+	t.Log(v, err)
 }

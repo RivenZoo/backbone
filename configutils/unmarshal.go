@@ -8,51 +8,48 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"reflect"
 )
 
+const (
+	ConfigTypeJSON ConfigType = "json"
+	ConfigTypeTOML ConfigType = "toml"
+	ConfigTypeYAML ConfigType = "yaml"
+)
+
+type ConfigType string
+
 var (
-	errWrongUnmarshalReceiver = errors.New("unmarshal output should be pointer")
 	errUnsupportFormat        = errors.New("unsupport input format")
 )
 
 // Unmarshal support json/toml/yaml.
-// Decode order: json,toml,yaml.
 // Notice: yaml should use tag `yaml:"key"`
-func Unmarshal(r io.Reader, v interface{}) error {
+func Unmarshal(r io.Reader, v interface{}, tp ConfigType) error {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
-	unmarshalFn := [](func([]byte, interface{}) error){unmarshalJson, unmarshalToml, unmarshalYaml}
-	for i := range unmarshalFn {
-		tp := reflect.TypeOf(v)
-		var newVal interface{}
-		switch tp.Kind() {
-		case reflect.Ptr:
-			newVal = reflect.New(tp.Elem()).Interface()
-		default:
-			return errWrongUnmarshalReceiver
-		}
-		err = unmarshalFn[i](data, newVal)
-		if err == nil {
-			reflect.ValueOf(v).Elem().Set(reflect.ValueOf(newVal).Elem())
-			return nil
-		}
+	switch tp {
+	case ConfigTypeJSON:
+		return unmarshalJson(data, v)
+	case ConfigTypeTOML:
+		return unmarshalToml(data, v)
+	case ConfigTypeYAML:
+		return unmarshalYaml(data, v)
+	default:
 	}
 	return errUnsupportFormat
 }
 
 // UnmarshalFile support json/toml/yaml.
-// Decode order: json,toml,yaml.
 // Notice: yaml should use tag `yaml:"key"`
-func UnmarshalFile(fPath string, v interface{}) error {
+func UnmarshalFile(fPath string, v interface{}, tp ConfigType) error {
 	f, err := os.Open(fPath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
-	return Unmarshal(f, v)
+	return Unmarshal(f, v, tp)
 }
 
 func unmarshalJson(data []byte, v interface{}) error {

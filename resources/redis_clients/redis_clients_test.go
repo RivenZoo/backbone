@@ -2,6 +2,7 @@ package redis_clients
 
 import (
 	"github.com/RivenZoo/backbone/bootconfig"
+	"github.com/RivenZoo/backbone/configutils"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/stretchr/testify/assert"
 	"os"
@@ -11,7 +12,7 @@ import (
 type redisBootConfig struct {
 }
 
-func (cfg redisBootConfig) GetConfig(key string) bootconfig.RawConfigData {
+func (cfg redisBootConfig) GetConfig(key string) (bootconfig.RawConfigData, configutils.ConfigType) {
 	if key == GetBootConfigKey() {
 		return []byte(`
 {
@@ -22,9 +23,9 @@ func (cfg redisBootConfig) GetConfig(key string) bootconfig.RawConfigData {
 	 }
   }
 }
-`)
+`), configutils.ConfigTypeJSON
 	}
-	return []byte{}
+	return []byte{}, ""
 }
 
 func TestMain(m *testing.M) {
@@ -38,6 +39,9 @@ func TestMain(m *testing.M) {
 }
 
 func TestGetClient(t *testing.T) {
+	obj := resources.GetResourceContainer().GetResource(GetBootConfigKey())
+	assert.NotNil(t, obj)
+
 	cli := GetClient("test", 0)
 	assert.NotNil(t, cli)
 }

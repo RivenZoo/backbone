@@ -8,6 +8,17 @@ import (
 	"gopkg.in/redis.v5"
 )
 
+// redis client json config format
+//{
+//	"redis_config": {
+//		"test": {
+//			"addr": "127.0.0.1:6379",
+//			"db_indexs": [0, 1, 2]
+//		}
+//	}
+//}
+
+
 var redisConnector *redis_connector.RedisConnector
 
 func GetBootConfigKey() string {
@@ -18,9 +29,9 @@ func init() {
 	key := GetBootConfigKey()
 	creator := resource_manager.NewResourceCreator(func() (*redis_connector.RedisConnector, error) {
 		g := bootconfig.GetConfigGetter()
-		data := g.GetConfig(key)
+		data, tp := g.GetConfig(key)
 		var cfg *redis_connector.RedisConnectorConfig
-		if err := data.Unmarshal(&cfg); err != nil {
+		if err := data.Unmarshal(&cfg, tp); err != nil {
 			return nil, err
 		}
 		return redis_connector.NewRedisConnector(*cfg)
