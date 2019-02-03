@@ -126,3 +126,14 @@ func (c *RedisConnector) GetClient(opt RedisDBOption) *redis.Client {
 	}
 	return nil
 }
+
+func (c *RedisConnector) Close() error {
+	for i := range c.namedClients {
+		for _, cli := range c.namedClients[i].clients {
+			if cli != nil {
+				cli.Close()
+			}
+		}
+	}
+	return nil
+}
