@@ -19,29 +19,18 @@ func newCreator() (closableCreator, error) {
 
 func TestResourceCreator(t *testing.T) {
 	var cc closableCreator
-	c := ResourceCreator{
-		CreateFunc: newCreator,
-		Receiver:   &cc,
-	}
-	c.validate()
-	obj, err := c.create()
+	c := NewResourceCreator(newCreator, &cc)
+	c.Validate()
+
+	obj, err := c.createResource()
 	assert.Nil(t, err)
-	c.setReceiver(obj)
+	c.SetReceiver(obj)
 	retCC := obj.(closableCreator)
 	assert.EqualValues(t, retCC.Name, cc.Name)
 	t.Log(cc, retCC)
 
-	c = ResourceCreator{
-		CreateFunc: func() int { return 0 },
-	}
-	assert.Panics(t, func() {
-		defer func() {
-			if e := recover(); e != nil {
-				t.Log(e)
-				panic(e)
-			}
-		}()
-		c.validate()
-		c.create()
-	}, "should panic because return T must implement Closable")
+	c = NewResourceCreator(func() int { return 0 }, nil)
+	c.Validate()
+	_, err = c.createResource()
+	assert.EqualValues(t, errUnSupportCreatorFunc, err)
 }

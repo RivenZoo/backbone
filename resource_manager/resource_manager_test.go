@@ -1,6 +1,7 @@
 package resource_manager
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -31,14 +32,12 @@ func TestResourceContainer_RegisterCreator(t *testing.T) {
 
 	var expect closableCreator
 	var obj closableCreator
-	rc.RegisterCreator(key, ResourceCreator{
-		CreateFunc: func() (closableCreator, error) {
-			var err error
-			expect, err = newCreator()
-			return expect, err
-		},
-		Receiver: &obj,
-	})
+	c := NewResourceCreator(func() (closableCreator, error) {
+		var err error
+		expect, err = newCreator()
+		return expect, err
+	}, &obj)
+	rc.RegisterCreator(key, c)
 	rc.Init()
 
 	ret := rc.GetResource(key)
@@ -57,10 +56,13 @@ type initializableResource struct {
 const defaultTestCount = 100
 
 func (ir *initializableResource) Close() error {
+	fmt.Printf("close call")
+	ir.Count = 0
 	return nil
 }
 
 func (ir *initializableResource) Init() error {
+	fmt.Println("init call")
 	ir.Count = defaultTestCount
 	return nil
 }
@@ -71,14 +73,12 @@ func TestResourceContainer_Init(t *testing.T) {
 
 	var expect *initializableResource
 	var obj *initializableResource
-	rc.RegisterCreator(key, ResourceCreator{
-		CreateFunc: func() (*initializableResource, error) {
-			var err error
-			expect = &initializableResource{}
-			return expect, err
-		},
-		Receiver: &obj,
-	})
+	c := NewResourceCreator(func() (*initializableResource, error) {
+		var err error
+		expect = &initializableResource{}
+		return expect, err
+	}, &obj)
+	rc.RegisterCreator(key, c)
 	rc.Init()
 
 	ret := rc.GetResource(key)
@@ -89,4 +89,7 @@ func TestResourceContainer_Init(t *testing.T) {
 	assert.EqualValues(t, defaultTestCount, expect.Count)
 	assert.EqualValues(t, expect.Count, retCC.Count)
 	assert.EqualValues(t, expect.Count, obj.Count)
+
+	rc.Close()
+	assert.EqualValues(t, 0, obj.Count)
 }

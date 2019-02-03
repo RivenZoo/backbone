@@ -7,6 +7,7 @@ import (
 
 var errUnSupportCreatorFunc = errors.New("resource creator must be func() T or func() (T, error)")
 
+// ObjectCreator create object by CreateFunc closure.
 type ObjectCreator struct {
 	// CreateFunc must be func() T or func() (T, error)
 	CreateFunc interface{}
@@ -15,6 +16,14 @@ type ObjectCreator struct {
 	Receiver interface{}
 }
 
+func NewObjectCreator(createFunc interface{}, receiver interface{}) ObjectCreator {
+	return ObjectCreator{
+		CreateFunc: createFunc,
+		Receiver:   receiver,
+	}
+}
+
+// Validate panics if CreateFunc is not func() T and func() (T, error).
 func (c ObjectCreator) Validate() {
 	v := reflect.Indirect(reflect.ValueOf(c.CreateFunc))
 	if v.Type().Kind() != reflect.Func {
@@ -34,6 +43,7 @@ func (c ObjectCreator) Validate() {
 	}
 }
 
+// Create return (nil, error) if create object error.
 func (c ObjectCreator) Create() (interface{}, error) {
 	fn := reflect.Indirect(reflect.ValueOf(c.CreateFunc))
 	ret := fn.Call(nil)
@@ -47,9 +57,10 @@ func (c ObjectCreator) Create() (interface{}, error) {
 		}
 		return ret[0].Interface(), err
 	}
-	panic(errUnSupportCreatorFunc)
+	return nil, errUnSupportCreatorFunc
 }
 
+// SetReceiver set obj to Receiver if Receiver is not nil.
 func (c ObjectCreator) SetReceiver(obj interface{}) {
 	if c.Receiver != nil {
 		reflect.ValueOf(c.Receiver).Elem().Set(reflect.ValueOf(obj))

@@ -7,7 +7,6 @@ import (
 var (
 	errDuplicateResourceName = errors.New("duplicate resource name")
 	errUnSupportResourceType = errors.New("resource object must implements Closable")
-	errUnSupportCreatorFunc  = errors.New("resource creator must be func() T or func() (T, error), T must implements Closable")
 )
 
 type namedResourceCreator struct {
@@ -51,7 +50,7 @@ func (rc *ResourceContainer) RegisterCreator(name string, creator ResourceCreato
 	if _, ok := rc.resourceMap[name]; ok {
 		panic(errDuplicateResourceName)
 	}
-	creator.validate()
+	creator.Validate()
 	rc.creators = append(rc.creators, namedResourceCreator{
 		ResourceCreator: creator,
 		name:            name,
@@ -69,11 +68,11 @@ func (rc *ResourceContainer) GetResource(name string) Closable {
 func (rc *ResourceContainer) Init() {
 	// first: create all resource objects
 	for _, creator := range rc.creators {
-		obj, err := creator.create()
+		obj, err := creator.createResource()
 		if err != nil {
 			panic(err)
 		}
-		creator.setReceiver(obj)
+		creator.SetReceiver(obj)
 		rc.resourceMap[creator.name] = obj
 		if initObj, ok := obj.(Initializable); ok {
 			rc.needToInitObjects = append(rc.needToInitObjects, initObj)
@@ -89,6 +88,7 @@ func (rc *ResourceContainer) Init() {
 }
 
 // Close all resource objects.
+// Panics if error occurs.
 func (rc *ResourceContainer) Close() {
 	for _, obj := range rc.resourceMap {
 		if err := obj.Close(); err != nil {
