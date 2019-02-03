@@ -2,7 +2,6 @@ package resource_manager
 
 import (
 	"errors"
-	"io"
 )
 
 var (
@@ -10,14 +9,6 @@ var (
 	errUnSupportResourceType = errors.New("resource object must implements Closable")
 	errUnSupportCreatorFunc  = errors.New("resource creator must be func() T or func() (T, error), T must implements Closable")
 )
-
-type Closable interface {
-	io.Closer
-}
-
-type Initializable interface {
-	Init() error
-}
 
 type namedResourceCreator struct {
 	name string
@@ -42,18 +33,13 @@ func NewResourceContainer() *ResourceContainer {
 // Parameter object should be Closable.
 // If object implements Initializable, Init will be called.
 // Panics if name is duplicated.
-func (rc *ResourceContainer) RegisterResource(name string, object interface{}) {
+func (rc *ResourceContainer) RegisterResource(name string, object Closable) {
 	if _, ok := rc.resourceMap[name]; ok {
 		panic(errDuplicateResourceName)
 	}
-	switch obj := object.(type) {
-	case Closable:
-		rc.resourceMap[name] = obj
-		if initObj, ok := object.(Initializable); ok {
-			rc.needToInitObjects = append(rc.needToInitObjects, initObj)
-		}
-	default:
-		panic(errUnSupportResourceType)
+	rc.resourceMap[name] = object
+	if initObj, ok := object.(Initializable); ok {
+		rc.needToInitObjects = append(rc.needToInitObjects, initObj)
 	}
 }
 
