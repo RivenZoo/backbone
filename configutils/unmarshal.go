@@ -19,7 +19,7 @@ const (
 type ConfigType string
 
 var (
-	errUnsupportFormat        = errors.New("unsupport input format")
+	errUnsupportFormat = errors.New("unsupport input format")
 )
 
 // Unmarshal support json/toml/yaml.

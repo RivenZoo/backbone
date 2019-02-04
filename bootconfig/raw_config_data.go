@@ -8,7 +8,6 @@ import (
 type RawConfigData []byte
 
 // Unmarshal support json/toml/yaml.
-// Decode order: json,toml,yaml.
 // Notice: yaml should use tag `yaml:"key"`
 func (d RawConfigData) Unmarshal(v interface{}, tp configutils.ConfigType) error {
 	r := bytes.NewReader(d)

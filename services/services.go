@@ -1,6 +1,8 @@
 package services
 
-import "github.com/RivenZoo/backbone/service_manager"
+import (
+	"github.com/RivenZoo/backbone/service_manager"
+)
 
 var serviceContainer = service_manager.NewServiceContainer()
 
