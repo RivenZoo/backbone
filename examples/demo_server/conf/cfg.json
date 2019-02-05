@@ -1,5 +1,6 @@
 {
   "boot_configs": {
-    "svc.httpserver": "./conf/server.json"
+    "svc.httpserver": "./conf/server.json",
+    "res.redis_clients": "./conf/redis.json"
   }
 }

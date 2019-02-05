@@ -4,9 +4,12 @@ import (
 	"flag"
 	"github.com/RivenZoo/backbone/examples/demo_server/config"
 	"github.com/RivenZoo/backbone/examples/demo_server/controllers"
+	"github.com/RivenZoo/backbone/http/logger"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/backbone/services"
-	"github.com/RivenZoo/backbone/http/logger"
+	"github.com/RivenZoo/backbone/signalutils"
+	"os"
+	"syscall"
 )
 
 var cfgFile *string
@@ -27,7 +30,10 @@ func main() {
 	// third: init all service
 	logger.Log("init services")
 	services.GetServiceContainer().Init()
-	services.GetServiceContainer().Close()
+
+	signalutils.HandleSignals(func(sig os.Signal) {
+		services.GetServiceContainer().Close()
+	}, syscall.SIGINT, syscall.SIGTERM)
 
 	// init controllers
 	controllers.InitRouters()

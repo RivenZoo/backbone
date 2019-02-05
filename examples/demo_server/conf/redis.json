@@ -1,0 +1,12 @@
+{
+  "redis_config": {
+    "test_redis": {
+      "addr": "127.0.0.1:6379",
+      "db_indexs": [
+        0,
+        1,
+        2
+      ]
+    }
+  }
+}
