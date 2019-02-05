@@ -1,7 +1,6 @@
 package db_clients
 
 import (
-	"fmt"
 	"github.com/RivenZoo/backbone/bootconfig"
 	"github.com/RivenZoo/backbone/resource_manager"
 	"github.com/RivenZoo/backbone/resources"
@@ -76,7 +75,7 @@ func init() {
 		if err := data.Unmarshal(&cfg, tp); err != nil {
 			return nil, err
 		}
-		fmt.Println()
+
 		return newNamedSqlAgent(cfg)
 	}, &sqlagentContainer)
 	resources.GetResourceContainer().RegisterCreator(key, creator)
