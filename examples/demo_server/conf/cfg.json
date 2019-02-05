@@ -1,0 +1,5 @@
+{
+  "boot_configs": {
+    "svc.httpserver": "./conf/server.json"
+  }
+}

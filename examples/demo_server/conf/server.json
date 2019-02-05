@@ -1,0 +1,9 @@
+{
+  "addr": "127.0.0.1:8080",
+  "read_timeout_ms": 10000,
+  "read_header_timeout_ms": 10000,
+  "write_timeout_ms": 10000,
+  "idle_timeout_ms": 10000,
+  "max_header_bytes": 0,
+  "shutdown_timeout_ms": 10000
+}
