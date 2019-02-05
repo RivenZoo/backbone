@@ -71,6 +71,7 @@ func (c *ServiceContainer) Init() {
 		if err != nil {
 			panic(err)
 		}
+		creator.SetReceiver(obj)
 		c.serviceMap[creator.name] = obj
 		if stoppableSvc, ok := obj.(Stoppable); ok {
 			c.stoppableServices = append(c.stoppableServices, stoppableSvc)
