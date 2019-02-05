@@ -1,6 +1,10 @@
 package logger
 
-var defaultLogger = (Logger)(newGoLogger())
+var defaultLogger = (Logger)(func() *goLogger {
+	ret := newGoLogger()
+	ret.callDepth = 4
+	return ret
+}())
 
 type Logger interface {
 	Log(v ...interface{})
