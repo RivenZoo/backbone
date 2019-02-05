@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"github.com/RivenZoo/backbone/http/logger"
 	"net/http"
 	"time"
 )
@@ -51,6 +52,7 @@ func (s *SimpleServer) Run() error {
 	}
 	s.server.SetKeepAlivesEnabled(true)
 	if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		logger.Logf("[ERROR] ListenAndServe error %v", err)
 		return err
 	}
 	return nil

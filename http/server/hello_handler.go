@@ -10,6 +10,6 @@ type helloHandler struct {
 }
 
 func (h helloHandler) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	w.Header().Set("Content-Type", "html")
+	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(fmt.Sprintf("<html><body>%s</body></html>", h.welcome)))
 }
