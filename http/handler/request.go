@@ -2,7 +2,7 @@ package handler
 
 import (
 	"github.com/RivenZoo/backbone/http/handler/error_code"
-	"github.com/RivenZoo/backbone/http/logger"
+	"github.com/RivenZoo/backbone/logger"
 	"github.com/gin-gonic/gin"
 )
 

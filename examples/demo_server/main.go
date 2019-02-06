@@ -4,7 +4,7 @@ import (
 	"flag"
 	"github.com/RivenZoo/backbone/examples/demo_server/config"
 	"github.com/RivenZoo/backbone/examples/demo_server/controllers"
-	"github.com/RivenZoo/backbone/http/logger"
+	"github.com/RivenZoo/backbone/logger"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/backbone/services"
 	"github.com/RivenZoo/backbone/signalutils"

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"github.com/RivenZoo/backbone/http/handler/error_code"
-	"github.com/RivenZoo/backbone/http/logger"
+	"github.com/RivenZoo/backbone/logger"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"

@@ -2,7 +2,7 @@ package server
 
 import (
 	"context"
-	"github.com/RivenZoo/backbone/http/logger"
+	"github.com/RivenZoo/backbone/logger"
 	"net/http"
 	"time"
 )
