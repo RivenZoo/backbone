@@ -14,9 +14,15 @@ var abbreviateURLProcessor = handler.NewRequestHandleFunc(&handler.RequestProces
 	NewReqFunc: func() interface{} {
 		return &abbreviateURLReq{}
 	},
-	ProcessFunc: handleAbbreviateURLReq,
+	ProcessFunc: func(c *gin.Context, req interface{}) (resp interface{}, err error) {
+		abbrReq := req.(*abbreviateURLReq)
+		return handleAbbreviateURLReq(c, abbrReq)
+	},
 })
 
+//go:generate http_codegen -input $GOFILE
+
+// @HttpAPI("/url/abbr", abbreviateURLReq, abbreviateURLResp)
 type abbreviateURLReq struct {
 	URL string `json:"url"`
 }
@@ -25,14 +31,13 @@ type abbreviateURLResp struct {
 	URL string `json:"url"`
 }
 
-func handleAbbreviateURLReq(c *gin.Context, req interface{}) (resp interface{}, err error) {
-	abbrReq := req.(*abbreviateURLReq)
-	if abbrReq.URL == "" {
+func handleAbbreviateURLReq(c *gin.Context, req *abbreviateURLReq) (resp *abbreviateURLResp, err error) {
+	if req.URL == "" {
 		return nil, error_code.ErrBadRequest
 	}
-	cs := adler32.Checksum([]byte(abbrReq.URL))
+	cs := adler32.Checksum([]byte(req.URL))
 	s := strconv.FormatInt(int64(cs), 36)
-	err = model.SetAbbreviateURL(s, abbrReq.URL)
+	err = model.SetAbbreviateURL(s, req.URL)
 	if err != nil {
 		return nil, err
 	}
