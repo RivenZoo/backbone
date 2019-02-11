@@ -69,8 +69,8 @@ func genHttpAPIFuncDeclare(targetAst *SourceAst, unDeclaredMarkers []*HttpAPIMar
 				VarType: "error",
 			},
 		}
-		funcDecl := makeFuncDecl(m.commentNode.End()+1, methodName,
-			params, retParams, m.commentNode)
+		funcDecl := makeFuncDecl(1, methodName,
+			params, retParams, nil)
 		targetAst.node.Decls = append(targetAst.node.Decls, funcDecl)
 	}
 	targetAst.node.Comments = nil
@@ -142,13 +142,13 @@ func genTypeDeclares(targetAst *SourceAst, undeclaredTypes []undeclaredHttpAPIMa
 	decls := make([]ast.Decl, 0)
 	for _, ut := range undeclaredTypes {
 		if ut.requestType != "" {
-			typeDecl := makeStructTypeDecl(ut.marker.commentNode.Pos()-1, ut.requestType)
+			typeDecl := makeStructTypeDecl(1, ut.requestType)
 			if typeDecl != nil {
 				decls = append(decls, typeDecl)
 			}
 		}
 		if ut.responseType != "" {
-			typeDecl := makeStructTypeDecl(ut.marker.commentNode.Pos()-2, ut.responseType)
+			typeDecl := makeStructTypeDecl(2, ut.responseType)
 			if typeDecl != nil {
 				decls = append(decls, typeDecl)
 			}
@@ -178,4 +178,23 @@ func copyCommentGroup(cg *ast.CommentGroup) *ast.CommentGroup {
 		})
 	}
 	return ret
+}
+
+func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []string) (unImported []string) {
+	unImported = make([]string, 0)
+
+	findImported := func(pkg string) bool {
+		for _, imp := range imports {
+			if pkg == imp.Path.Value {
+				return true
+			}
+		}
+		return false
+	}
+	for _, pkg := range pkgs {
+		if !findImported(pkg) {
+			unImported = append(unImported, pkg)
+		}
+	}
+	return
 }

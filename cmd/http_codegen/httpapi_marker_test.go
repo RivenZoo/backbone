@@ -27,6 +27,4 @@ package controller
 	assert.Equal(t, `"/url"`, markers[0].URL)
 	assert.Equal(t, `apiReq`, markers[0].RequestType)
 	assert.Equal(t, `apiResp`, markers[0].ResponseType)
-	t.Log(markers[0].commentNode.Text())
-	t.Log(markers[1].commentNode.Text())
 }
