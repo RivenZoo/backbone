@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"github.com/stretchr/testify/assert"
+	"go/format"
 	"testing"
 )
 
@@ -21,7 +22,13 @@ import (
 */
 `
 	g := newHttpAPIGenerator(httpAPIGeneratorOption{
-		imports: []string{"github.com/gin"},
+		imports: []importInfo{{"github.com/gin", ""},
+			{"github.com/request/header", ""}},
+		commonAPIDefinition: commonHttpAPIDefinition{
+			CommonRequestFields:  "header.RequestHeader",
+			CommonResponseFields: "header.ResponseHeader",
+			CommonFuncStmt:       "// set common code snippet here",
+		},
 	})
 	err := g.parseCode("test.go", bytes.NewReader([]byte(src)))
 	assert.Nil(t, err)
@@ -32,6 +39,10 @@ import (
 	assert.True(t, len(g.markers) == 2)
 
 	g.genHttpAPIDeclare()
+	codeBuf := bytes.NewBuffer(make([]byte, 0))
+	g.outputAPIDeclare(codeBuf)
 
-
+	code, err := format.Source(codeBuf.Bytes())
+	assert.Nil(t, err)
+	t.Log(string(code))
 }

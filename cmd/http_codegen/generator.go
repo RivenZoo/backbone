@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"io/ioutil"
+	"sort"
 )
 
 type generatedOutput struct {
@@ -11,8 +12,26 @@ type generatedOutput struct {
 	afterLine int
 }
 
+type generatedOutputSlice []generatedOutput
+
+func (o generatedOutputSlice) Len() int           { return len(o) }
+func (o generatedOutputSlice) Swap(i, j int)      { o[i], o[j] = o[j], o[i] }
+func (o generatedOutputSlice) Less(i, j int) bool { return o[i].afterLine < o[j].afterLine }
+
+type importInfo struct {
+	PkgPath string
+	Alias   string
+}
+
+type commonHttpAPIDefinition struct {
+	CommonRequestFields  string
+	CommonResponseFields string
+	CommonFuncStmt       string
+}
+
 type httpAPIGeneratorOption struct {
-	imports []string
+	imports             []importInfo
+	commonAPIDefinition commonHttpAPIDefinition
 }
 
 type httpAPIGenerator struct {
@@ -88,12 +107,27 @@ func (g *httpAPIGenerator) outputAPIDeclare(w io.Writer) error {
 		}
 		g.srcContent = data
 	}
-	
+	sort.Sort(generatedOutputSlice(g.sourceFileOutput))
+	lines := bytes.Split(g.srcContent, []byte{'\n'})
+	innerIdx := 0
+	for lineNo, line := range lines {
+		w.Write(line)
+		w.Write([]byte{'\n'})
+		for ; innerIdx < len(g.sourceFileOutput); innerIdx++ {
+			output := g.sourceFileOutput[innerIdx]
+			if output.afterLine > lineNo+1 {
+				break
+			}
+			w.Write(output.buffer.Bytes())
+			w.Write([]byte{'\n'})
+		}
+	}
+	return nil
 }
 
-func (g *httpAPIGenerator) genSourceOutput(unDeclaredMarkers []*HttpAPIMarker, unImported []string) {
+func (g *httpAPIGenerator) genSourceOutput(unDeclaredMarkers []*HttpAPIMarker, unImported []importInfo) {
 	g.sourceFileOutput = make([]generatedOutput, 0, len(unDeclaredMarkers))
-	importDecl := func(pkgs []string) *bytes.Buffer {
+	importDecl := func(pkgs []importInfo) *bytes.Buffer {
 		buf := bytes.NewBuffer(make([]byte, 0))
 		genImportByTmpl(pkgs, buf)
 		return buf
@@ -109,7 +143,7 @@ func (g *httpAPIGenerator) genSourceOutput(unDeclaredMarkers []*HttpAPIMarker, u
 
 	apiTypeDeclare := func(m *HttpAPIMarker) *bytes.Buffer {
 		buf := bytes.NewBuffer(make([]byte, 0))
-		genHttpAPIDefinitionByTmpl(m, buf)
+		genHttpAPIDefinitionByTmpl(m, buf, g.option.commonAPIDefinition)
 		return buf
 	}
 	for _, m := range unDeclaredMarkers {

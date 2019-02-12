@@ -180,8 +180,8 @@ func copyCommentGroup(cg *ast.CommentGroup) *ast.CommentGroup {
 	return ret
 }
 
-func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []string) (unImported []string) {
-	unImported = make([]string, 0)
+func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []importInfo) (unImported []importInfo) {
+	unImported = make([]importInfo, 0)
 
 	findImported := func(pkg string) bool {
 		for _, imp := range imports {
@@ -192,7 +192,7 @@ func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []string) (unImport
 		return false
 	}
 	for _, pkg := range pkgs {
-		if !findImported(pkg) {
+		if !findImported(pkg.PkgPath) {
 			unImported = append(unImported, pkg)
 		}
 	}
