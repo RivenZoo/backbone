@@ -48,7 +48,9 @@ type HttpAPIGenerator struct {
 	handlerSource      *SourceAst
 	handlerFileContent []byte
 
-	routerInitFile string
+	routerInitFile        string
+	routerInitFileContent []byte
+	routerInitSource      *SourceAst
 
 	// generated output
 	sourceFileOutput []generatedOutput // request/response type declare, handle func declare
@@ -268,6 +270,64 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 	}
 }
 
-func (g *httpAPIGenerator) genInitHttpAPIRouter() {
+func httpRouterInitFilename(pkgName string) string {
+	return fmt.Sprintf("%s_urls.go", pkgName)
+}
 
+func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
+	pkgName := g.packageName()
+	g.routerInitFile = httpRouterInitFilename(pkgName)
+
+	markers := g.filterUnRegisterAPI()
+	if len(markers) == 0 {
+		return
+	}
+
+	g.addInitRouterImports()
+	unImported := g.option.initRouterImports
+	if g.routerInitSource != nil {
+		unImported = filterUnImportedPackage(g.routerInitSource.node.Imports, g.option.initRouterImports)
+	}
+	g.genInitHttpAPIRouterOutput(markers, unImported)
+}
+
+func (g *HttpAPIGenerator) OutputInitHttpAPIRouter(w io.Writer) {
+
+}
+
+func (g *HttpAPIGenerator) filterUnRegisterAPI() []*HttpAPIMarker {
+	return nil
+}
+
+func (g *HttpAPIGenerator) addInitRouterImports() {
+	requiredImports := []importInfo{
+		{"github.com/gin-gonic/gin", ""},
+	}
+	g.option.initRouterImports = mergeImports(g.option.initRouterImports, requiredImports)
+}
+
+func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(marker []*HttpAPIMarker, unImported []importInfo) {
+
+}
+
+func (g *HttpAPIGenerator) packageName() string {
+	return g.source.node.Name.Name
+}
+
+func mergeImports(srcImports, addImports []importInfo) []importInfo {
+	findExistImport := func(pkg string) bool {
+		for _, imp := range srcImports {
+			if imp.PkgPath == pkg {
+				return true
+			}
+		}
+		return false
+	}
+	imports := srcImports
+	for _, imp := range addImports {
+		if !findExistImport(imp.PkgPath) {
+			imports = append(imports, imp)
+		}
+	}
+	return imports
 }
