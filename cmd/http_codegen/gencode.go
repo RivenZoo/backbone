@@ -1,15 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
-	"strings"
 )
-
-func httpAPIMethodName(requestTypeName string) string {
-	return fmt.Sprintf("handle%s", strings.Title(requestTypeName))
-}
 
 func filterDelcaredFuncNames(decls []ast.Decl) []string {
 	declaredFuncs := make([]string, 0)
@@ -197,10 +191,6 @@ func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []importInfo) (unIm
 		}
 	}
 	return
-}
-
-func httpAPIHandlerVarName(reqType string) string {
-	return fmt.Sprintf("%sHandler", reqType)
 }
 
 func filterUndeclaredHandlers(sa *SourceAst, markers []*HttpAPIMarker) []apiHandlerDefineInfo {

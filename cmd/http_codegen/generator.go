@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strings"
 )
 
 type importInfo struct {
@@ -31,11 +32,12 @@ type commonHttpAPIHandlerOption struct {
 type httpAPIGeneratorOption struct {
 	apiDefineFileImports  []importInfo
 	apiHandlerFileImports []importInfo
+	initRouterImports     []importInfo
 	commonAPIDefinition   commonHttpAPIDefinitionOption
 	commonHttpAPIHandler  commonHttpAPIHandlerOption
 }
 
-type httpAPIGenerator struct {
+type HttpAPIGenerator struct {
 	option     httpAPIGeneratorOption
 	srcFile    string
 	srcContent []byte
@@ -54,15 +56,15 @@ type httpAPIGenerator struct {
 	routerInitOutput []generatedOutput // register gin handler
 }
 
-func newHttpAPIGenerator(option httpAPIGeneratorOption) *httpAPIGenerator {
-	ret := &httpAPIGenerator{
+func newHttpAPIGenerator(option httpAPIGeneratorOption) *HttpAPIGenerator {
+	ret := &HttpAPIGenerator{
 		option:  option,
 		markers: []*HttpAPIMarker{},
 	}
 	return ret
 }
 
-func (g *httpAPIGenerator) ParseFile(srcFile string) error {
+func (g *HttpAPIGenerator) ParseFile(srcFile string) error {
 	sa, err := ParseSourceFile(srcFile)
 	if err != nil {
 		return err
@@ -72,7 +74,7 @@ func (g *httpAPIGenerator) ParseFile(srcFile string) error {
 	return nil
 }
 
-func (g *httpAPIGenerator) ParseCode(fname string, code io.Reader) error {
+func (g *HttpAPIGenerator) ParseCode(fname string, code io.Reader) error {
 	data, err := ioutil.ReadAll(code)
 	if err != nil {
 		return err
@@ -88,7 +90,7 @@ func (g *httpAPIGenerator) ParseCode(fname string, code io.Reader) error {
 	return nil
 }
 
-func (g *httpAPIGenerator) ParseHttpAPIMarkers() error {
+func (g *HttpAPIGenerator) ParseHttpAPIMarkers() error {
 	m, err := ParseHttpAPIMarkers(g.source)
 	if err != nil {
 		return err
@@ -97,14 +99,14 @@ func (g *httpAPIGenerator) ParseHttpAPIMarkers() error {
 	return nil
 }
 
-func (g *httpAPIGenerator) GenHttpAPIDeclare() {
+func (g *HttpAPIGenerator) GenHttpAPIDeclare() {
 	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.apiDefineFileImports)
 	declaredFuncs := filterDelcaredFuncNames(g.source.node.Decls)
 	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(g.markers, declaredFuncs)
 	g.genAPIDeclareOutput(unDeclaredMarkers, unImported)
 }
 
-func (g *httpAPIGenerator) OutputAPIDeclare(w io.Writer) error {
+func (g *HttpAPIGenerator) OutputAPIDeclare(w io.Writer) error {
 	if g.srcContent == nil {
 		data, err := ioutil.ReadFile(g.srcFile)
 		if err != nil {
@@ -125,7 +127,11 @@ func genImports(pkgs []importInfo) *bytes.Buffer {
 	return buf
 }
 
-func (g *httpAPIGenerator) genAPIDeclareOutput(unDeclaredMarkers []*HttpAPIMarker, unImported []importInfo) {
+func httpAPIMethodName(requestTypeName string) string {
+	return fmt.Sprintf("handle%s", strings.Title(requestTypeName))
+}
+
+func (g *HttpAPIGenerator) genAPIDeclareOutput(unDeclaredMarkers []*HttpAPIMarker, unImported []importInfo) {
 	g.sourceFileOutput = make([]generatedOutput, 0, len(unDeclaredMarkers))
 	if len(unImported) > 0 {
 		end := g.source.fSet.Position(g.source.node.Name.End()).Line
@@ -157,7 +163,11 @@ type apiHandlerDefineInfo struct {
 	apiMethodName string
 }
 
-func (g *httpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
+func httpAPIHandlerVarName(reqType string) string {
+	return fmt.Sprintf("%sHandler", reqType)
+}
+
+func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 	data, err := ioutil.ReadFile(g.handlerDefineFile)
 	if err != nil && os.IsNotExist(err) {
 		ret := []apiHandlerDefineInfo{}
@@ -191,29 +201,16 @@ func apiHandlerFileName(srcFilename string) string {
 	return fmt.Sprintf("%s_handlers.go", srcFilename)
 }
 
-func (g *httpAPIGenerator) addAPIHandlerImports() {
+func (g *HttpAPIGenerator) addAPIHandlerImports() {
 	requiredImports := []importInfo{
 		{"github.com/RivenZoo/backbone/http/handler", ""},
 		{"github.com/gin-gonic/gin", ""},
 	}
-	findExistImport := func(pkg string) bool {
-		for _, imp := range g.option.apiHandlerFileImports {
-			if imp.PkgPath == pkg {
-				return true
-			}
-		}
-		return false
-	}
-	imports := g.option.apiHandlerFileImports
-	for _, imp := range requiredImports {
-		if !findExistImport(imp.PkgPath) {
-			imports = append(imports, imp)
-		}
-	}
-	g.option.apiHandlerFileImports = imports
+
+	g.option.apiHandlerFileImports = mergeImports(g.option.apiHandlerFileImports, requiredImports)
 }
 
-func (g *httpAPIGenerator) GenHttpAPIHandler() {
+func (g *HttpAPIGenerator) GenHttpAPIHandler() {
 	g.handlerDefineFile = apiHandlerFileName(g.source.filePath)
 	handlerDefineInfos := g.filterUndeclaredAPIHandler()
 	if len(handlerDefineInfos) == 0 {
@@ -228,7 +225,7 @@ func (g *httpAPIGenerator) GenHttpAPIHandler() {
 	g.genHttpAPIHandlerOutput(handlerDefineInfos, unImported)
 }
 
-func (g *httpAPIGenerator) OutputAPIHandler(w io.Writer) error {
+func (g *HttpAPIGenerator) OutputAPIHandler(w io.Writer) error {
 	merger := outputMerger{
 		src:   g.handlerFileContent, // maybe it's nil
 		added: g.handlerOutput,
@@ -236,7 +233,7 @@ func (g *httpAPIGenerator) OutputAPIHandler(w io.Writer) error {
 	return merger.WriteTo(w)
 }
 
-func (g *httpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandlerDefineInfo,
+func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandlerDefineInfo,
 	unImported []importInfo) {
 	if len(g.handlerFileContent) <= 0 {
 		// empty file, add package declare
