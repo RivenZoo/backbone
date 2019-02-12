@@ -198,3 +198,51 @@ func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []importInfo) (unIm
 	}
 	return
 }
+
+func httpAPIHandlerVarName(reqType string) string {
+	return fmt.Sprintf("%sHandler", reqType)
+}
+
+func filterUndeclaredHandlers(sa *SourceAst, markers []*HttpAPIMarker) []apiHandlerDefineInfo {
+	lastLine := 0
+	globalVars := []string{}
+	for _, decl := range sa.node.Decls {
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok {
+			continue
+		}
+		if genDecl.Tok != token.VAR {
+			continue
+		}
+		for _, spec := range genDecl.Specs {
+			varSpec, ok := spec.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+			globalVars = append(globalVars, varSpec.Names[0].Name)
+			lastLine = sa.fSet.Position(varSpec.End()).Line
+		}
+	}
+	findDeclaredVar := func(varName string) bool {
+		for _, v := range globalVars {
+			if varName == v {
+				return true
+			}
+		}
+		return false
+	}
+
+	ret := make([]apiHandlerDefineInfo, 0)
+	for i, m := range markers {
+		vn := httpAPIHandlerVarName(m.RequestType)
+		if !findDeclaredVar(vn) {
+			ret = append(ret, apiHandlerDefineInfo{
+				marker:        m,
+				varName:       vn,
+				afterLine:     lastLine + i,
+				apiMethodName: httpAPIMethodName(m.RequestType),
+			})
+		}
+	}
+	return ret
+}
