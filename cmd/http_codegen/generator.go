@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"go/format"
 	"io"
 	"io/ioutil"
 	"sort"
@@ -30,8 +31,8 @@ type commonHttpAPIDefinition struct {
 }
 
 type httpAPIGeneratorOption struct {
-	imports             []importInfo
-	commonAPIDefinition commonHttpAPIDefinition
+	apiDefineFileImports []importInfo
+	commonAPIDefinition  commonHttpAPIDefinition
 }
 
 type httpAPIGenerator struct {
@@ -57,7 +58,7 @@ func newHttpAPIGenerator(option httpAPIGeneratorOption) *httpAPIGenerator {
 	return ret
 }
 
-func (g *httpAPIGenerator) parseFile(srcFile string) error {
+func (g *httpAPIGenerator) ParseFile(srcFile string) error {
 	sa, err := ParseSourceFile(srcFile)
 	if err != nil {
 		return err
@@ -67,7 +68,7 @@ func (g *httpAPIGenerator) parseFile(srcFile string) error {
 	return nil
 }
 
-func (g *httpAPIGenerator) parseCode(fname string, code io.Reader) error {
+func (g *httpAPIGenerator) ParseCode(fname string, code io.Reader) error {
 	data, err := ioutil.ReadAll(code)
 	if err != nil {
 		return err
@@ -83,7 +84,7 @@ func (g *httpAPIGenerator) parseCode(fname string, code io.Reader) error {
 	return nil
 }
 
-func (g *httpAPIGenerator) parseHttpAPIMarkers() error {
+func (g *httpAPIGenerator) ParseHttpAPIMarkers() error {
 	m, err := ParseHttpAPIMarkers(g.source)
 	if err != nil {
 		return err
@@ -92,14 +93,14 @@ func (g *httpAPIGenerator) parseHttpAPIMarkers() error {
 	return nil
 }
 
-func (g *httpAPIGenerator) genHttpAPIDeclare() {
-	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.imports)
+func (g *httpAPIGenerator) GenHttpAPIDeclare() {
+	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.apiDefineFileImports)
 	declaredFuncs := filterDelcaredFuncNames(g.source.node.Decls)
 	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(g.markers, declaredFuncs)
 	g.genSourceOutput(unDeclaredMarkers, unImported)
 }
 
-func (g *httpAPIGenerator) outputAPIDeclare(w io.Writer) error {
+func (g *httpAPIGenerator) OutputAPIDeclare(w io.Writer) error {
 	if g.srcContent == nil {
 		data, err := ioutil.ReadFile(g.srcFile)
 		if err != nil {
@@ -107,21 +108,27 @@ func (g *httpAPIGenerator) outputAPIDeclare(w io.Writer) error {
 		}
 		g.srcContent = data
 	}
+	buf := bytes.NewBuffer(make([]byte, 0, 1024))
 	sort.Sort(generatedOutputSlice(g.sourceFileOutput))
 	lines := bytes.Split(g.srcContent, []byte{'\n'})
 	innerIdx := 0
 	for lineNo, line := range lines {
-		w.Write(line)
-		w.Write([]byte{'\n'})
+		buf.Write(line)
+		buf.Write([]byte{'\n'})
 		for ; innerIdx < len(g.sourceFileOutput); innerIdx++ {
 			output := g.sourceFileOutput[innerIdx]
 			if output.afterLine > lineNo+1 {
 				break
 			}
-			w.Write(output.buffer.Bytes())
-			w.Write([]byte{'\n'})
+			buf.Write(output.buffer.Bytes())
+			buf.Write([]byte{'\n'})
 		}
 	}
+	code, err := format.Source(buf.Bytes())
+	if err != nil {
+		return err
+	}
+	w.Write(code)
 	return nil
 }
 
