@@ -288,6 +288,9 @@ func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
 	pkgName := g.packageName()
 	g.routerInitFile = httpRouterInitFilename(pkgName)
 
+	if g.parseInitRouterFile() != nil {
+		return
+	}
 	markers := g.filterUnRegisterAPI()
 	if len(markers) == 0 {
 		return
@@ -303,6 +306,27 @@ func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
 
 func (g *HttpAPIGenerator) OutputInitHttpAPIRouter(w io.Writer) {
 
+}
+
+func (g *HttpAPIGenerator) parseInitRouterFile() error {
+	data, err := readSource(g.routerInitFile)
+	if err != nil {
+		return err
+	}
+	if data == nil {
+		// no file content
+		return nil
+	}
+
+	g.routerInitFileContent = data
+
+	sa, err := ParseSourceCode(g.routerInitFile, bytes.NewReader(data))
+	if err != nil {
+		logger.Errorf("ParseSourceCode %s error %v", g.routerInitFile, err)
+		return err
+	}
+	g.routerInitSource = sa
+	return nil
 }
 
 func (g *HttpAPIGenerator) filterUnRegisterAPI() []*HttpAPIMarker {
