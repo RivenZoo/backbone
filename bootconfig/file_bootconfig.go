@@ -4,8 +4,6 @@ import (
 	"errors"
 	"github.com/RivenZoo/backbone/configutils"
 	"io/ioutil"
-	"path"
-	"strings"
 )
 
 var errNoSuchBootConfig = errors.New("no such boot config provided")
@@ -34,22 +32,9 @@ func (g FileBootConfigGetter) GetConfig(key string) (RawConfigData, configutils.
 			panic(err)
 		}
 		if tp == "" {
-			tp = detechFileConfigType(fname)
+			tp = configutils.DetechFileConfigType(fname)
 		}
 		return RawConfigData(data), tp
 	}
 	panic(errNoSuchBootConfig)
-}
-
-func detechFileConfigType(fname string) configutils.ConfigType {
-	ext := strings.ToLower(path.Ext(fname))
-	switch ext {
-	case ".json":
-		return configutils.ConfigTypeJSON
-	case ".toml":
-		return configutils.ConfigTypeTOML
-	case ".yaml", ".yml":
-		return configutils.ConfigTypeYAML
-	}
-	return configutils.ConfigType("")
 }
