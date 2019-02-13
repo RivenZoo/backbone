@@ -1,26 +1,16 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/RivenZoo/backbone/examples/demo_server/model"
-	"github.com/RivenZoo/backbone/http/handler"
 	"github.com/RivenZoo/backbone/http/handler/error_code"
 	"github.com/gin-gonic/gin"
 	"hash/adler32"
 	"strconv"
 )
 
-var abbreviateURLProcessor = handler.NewRequestHandleFunc(&handler.RequestProcessor{
-	NewReqFunc: func() interface{} {
-		return &abbreviateURLReq{}
-	},
-	ProcessFunc: func(c *gin.Context, req interface{}) (resp interface{}, err error) {
-		abbrReq := req.(*abbreviateURLReq)
-		return handleAbbreviateURLReq(c, abbrReq)
-	},
-})
-
-//go:generate http_codegen -input $GOFILE
+import (
+	"fmt"
+)
 
 // @HttpAPI("/url/abbr", abbreviateURLReq, abbreviateURLResp)
 type abbreviateURLReq struct {
@@ -32,6 +22,7 @@ type abbreviateURLResp struct {
 }
 
 func handleAbbreviateURLReq(c *gin.Context, req *abbreviateURLReq) (resp *abbreviateURLResp, err error) {
+
 	if req.URL == "" {
 		return nil, error_code.ErrBadRequest
 	}
@@ -42,6 +33,7 @@ func handleAbbreviateURLReq(c *gin.Context, req *abbreviateURLReq) (resp *abbrev
 		return nil, err
 	}
 	return &abbreviateURLResp{URL: formatURL(s)}, nil
+	return nil, nil
 }
 
 func formatURL(key string) string {
