@@ -87,3 +87,41 @@ import (
 
 	t.Log(codeBuf.String())
 }
+
+func TestHttpAPIGenerator_GenInitHttpAPIRouter(t *testing.T) {
+	src := `
+package controller
+
+import (
+)
+
+// @HttpAPI("/url", apiReq, apiResp)
+
+/*
+* @HttpAPI("/url2", apiReq2, apiResp2)
+*/
+`
+	g := newHttpAPIGenerator(httpAPIGeneratorOption{
+		initRouterImports: []importInfo{
+			{"github.com/auth", ""},
+		},
+		commonInitRouter: commonInitRouterStmtOption{
+			MiddlewareNames: []string{"auth.Auth"},
+		},
+	})
+	err := g.ParseCode("test.go", bytes.NewReader([]byte(src)))
+	assert.Nil(t, err)
+
+	err = g.ParseHttpAPIMarkers()
+	assert.Nil(t, err)
+
+	assert.True(t, len(g.markers) == 2)
+
+	g.GenInitHttpAPIRouter()
+
+	codeBuf := bytes.NewBuffer(make([]byte, 0))
+	g.OutputInitHttpAPIRouter(codeBuf)
+	assert.Nil(t, err)
+
+	t.Log(codeBuf.String())
+}

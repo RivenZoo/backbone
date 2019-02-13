@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"github.com/RivenZoo/backbone/logger"
 	"go/format"
 	"io"
 	"sort"
@@ -54,6 +55,7 @@ func (m *outputMerger) WriteTo(w io.Writer) error {
 
 	code, err := format.Source(buf.Bytes())
 	if err != nil {
+		logger.Errorf("format source error %v", err)
 		return err
 	}
 	w.Write(code)

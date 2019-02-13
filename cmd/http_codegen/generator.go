@@ -9,6 +9,8 @@ import (
 	"strings"
 )
 
+const registerRouterFuncName = "Post"
+
 type importInfo struct {
 	PkgPath string
 	Alias   string
@@ -28,12 +30,17 @@ type commonHttpAPIHandlerOption struct {
 	PostProcessFunc string
 }
 
+type commonInitRouterStmtOption struct {
+	MiddlewareNames []string
+}
+
 type httpAPIGeneratorOption struct {
 	apiDefineFileImports  []importInfo
 	apiHandlerFileImports []importInfo
 	initRouterImports     []importInfo
 	commonAPIDefinition   commonHttpAPIDefinitionOption
 	commonHttpAPIHandler  commonHttpAPIHandlerOption
+	commonInitRouter      commonInitRouterStmtOption
 }
 
 type HttpAPIGenerator struct {
@@ -255,7 +262,7 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 		})
 	}
 	if len(unImported) > 0 {
-		end := 1
+		end := 2
 		if g.handlerSource != nil {
 			end = g.handlerSource.fSet.Position(g.handlerSource.node.Name.End()).Line
 		}
@@ -284,6 +291,10 @@ func httpRouterInitFilename(pkgName string) string {
 	return fmt.Sprintf("%s_urls.go", pkgName)
 }
 
+func httpRouterInitFuncName() string {
+	return "registerUrls"
+}
+
 func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
 	pkgName := g.packageName()
 	g.routerInitFile = httpRouterInitFilename(pkgName)
@@ -291,8 +302,8 @@ func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
 	if g.parseInitRouterFile() != nil {
 		return
 	}
-	markers := g.filterUnRegisterAPI()
-	if len(markers) == 0 {
+	stmtInfos := g.filterUnRegisterAPI(httpRouterInitFuncName())
+	if len(stmtInfos) == 0 {
 		return
 	}
 
@@ -301,11 +312,15 @@ func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
 	if g.routerInitSource != nil {
 		unImported = filterUnImportedPackage(g.routerInitSource.node.Imports, g.option.initRouterImports)
 	}
-	g.genInitHttpAPIRouterOutput(markers, unImported)
+	g.genInitHttpAPIRouterOutput(stmtInfos, unImported)
 }
 
 func (g *HttpAPIGenerator) OutputInitHttpAPIRouter(w io.Writer) {
-
+	merger := outputMerger{
+		src:   g.routerInitFileContent, //maybe nil
+		added: g.routerInitOutput,
+	}
+	merger.WriteTo(w)
 }
 
 func (g *HttpAPIGenerator) parseInitRouterFile() error {
@@ -329,8 +344,26 @@ func (g *HttpAPIGenerator) parseInitRouterFile() error {
 	return nil
 }
 
-func (g *HttpAPIGenerator) filterUnRegisterAPI() []*HttpAPIMarker {
-	return nil
+type initRouterStmtInfo struct {
+	marker          *HttpAPIMarker
+	handlerFuncName string
+	afterLine       int
+}
+
+func (g *HttpAPIGenerator) filterUnRegisterAPI(initFunc string) []initRouterStmtInfo {
+	if g.routerInitSource == nil {
+		ret := make([]initRouterStmtInfo, 0, len(g.markers))
+		for _, m := range g.markers {
+			ret = append(ret, initRouterStmtInfo{
+				marker:          m,
+				afterLine:       5, // package,space,import,space,func
+				handlerFuncName: httpAPIMethodName(m.RequestType),
+			})
+		}
+		return ret
+	}
+
+	return filterUnInitRouters(g.routerInitSource, initFunc, registerRouterFuncName, g.markers)
 }
 
 func (g *HttpAPIGenerator) addInitRouterImports() {
@@ -340,8 +373,72 @@ func (g *HttpAPIGenerator) addInitRouterImports() {
 	g.option.initRouterImports = mergeImports(g.option.initRouterImports, requiredImports)
 }
 
-func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(marker []*HttpAPIMarker, unImported []importInfo) {
+func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmtInfo, unImported []importInfo) {
+	if len(g.routerInitFileContent) <= 0 {
+		// empty file, add package declare
+		g.routerInitOutput = append(g.routerInitOutput, generatedOutput{
+			buffer:    bytes.NewBufferString(fmt.Sprintf("package %s\n", g.source.node.Name.Name)),
+			afterLine: 1,
+		})
+	}
+	if len(unImported) > 0 {
+		end := 2
+		if g.routerInitSource != nil {
+			// after package stmt
+			end = g.routerInitSource.fSet.Position(g.routerInitSource.node.Name.End()).Line
+		}
+		output := generatedOutput{
+			buffer:    genImports(unImported),
+			afterLine: end,
+		}
+		g.routerInitOutput = append(g.routerInitOutput, output)
+	}
 
+	initFuncName := httpRouterInitFuncName()
+	genInitFunc := true
+	if g.routerInitSource != nil {
+		fnDecl := filterGlobalFunc(g.routerInitSource.node.Decls, initFuncName)
+		if fnDecl != nil {
+			genInitFunc = false
+		}
+	}
+
+	initRouterVarName := "engine"
+	if genInitFunc {
+		// begin new init func define
+		buf := bytes.NewBuffer(make([]byte, 0))
+		closeFunc := genFuncDefine(initFuncName, []string{"engine *gin.Engine"}, buf)
+		end := 3 // after package, import
+		if len(g.routerInitOutput) > 0 {
+			end = g.routerInitOutput[len(g.routerInitOutput)-1].afterLine + 1
+		}
+		g.routerInitOutput = append(g.routerInitOutput, generatedOutput{
+			buffer:    buf,
+			afterLine: end,
+		})
+		defer func() {
+			// end new init func define
+			buf := bytes.NewBuffer(make([]byte, 0))
+			closeFunc(buf)
+			g.routerInitOutput = append(g.routerInitOutput, generatedOutput{
+				buffer:    buf,
+				afterLine: g.routerInitOutput[len(g.routerInitOutput)-1].afterLine + 1,
+			})
+		}()
+	}
+	initRouterStmtFn := func(stmtInfo initRouterStmtInfo) *bytes.Buffer {
+		buf := bytes.NewBuffer(make([]byte, 0))
+		genInitRouterStmtByTmpl(stmtInfo, initRouterVarName, registerRouterFuncName, buf, g.option.commonInitRouter)
+		return buf
+	}
+	for _, info := range stmtInfos {
+		buf := initRouterStmtFn(info)
+		output := generatedOutput{
+			afterLine: info.afterLine,
+			buffer:    buf,
+		}
+		g.routerInitOutput = append(g.routerInitOutput, output)
+	}
 }
 
 func (g *HttpAPIGenerator) packageName() string {

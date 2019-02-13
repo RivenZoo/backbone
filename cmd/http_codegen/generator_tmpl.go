@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
 )
 
@@ -102,5 +103,46 @@ func genAPIHandlerByTmpl(info apiHandlerDefineInfo, buf *bytes.Buffer, option co
 		ResponseEncoder: option.ResponseEncoder,
 		ErrorEncoder:    option.ErrorEncoder,
 		PostProcessFunc: option.PostProcessFunc,
+	})
+}
+
+var funcDefineTmpl = template.Must(template.New("funcDefineTmpl").
+	Parse(`func {{.FuncName}}({{.Args}}) {
+`))
+
+type funcDefineTmplObj struct {
+	FuncName string
+	Args     string
+}
+
+func genFuncDefine(funcName string, args []string, buf *bytes.Buffer) (closeFuncDefine func(buf *bytes.Buffer)) {
+	funcDefineTmpl.Execute(buf, funcDefineTmplObj{
+		FuncName: funcName,
+		Args:     strings.Join(args, ", "),
+	})
+	return func(buf *bytes.Buffer) {
+		buf.Write([]byte{'\n', '}', '\n'})
+	}
+}
+
+var initRouterStmtTmpl = template.Must(template.New("initRouterStmtTmpl").
+	Parse(`{{.InitRouterVarName}}.{{.InitRouterFuncName}}("{{.URL}}", {{range $i,$name := .MiddlewareNames}}{{$name}}, {{end}}{{.HandlerFuncName}})`))
+
+type initRouterStmtTmplObj struct {
+	InitRouterVarName  string
+	InitRouterFuncName string
+	URL                string
+	HandlerFuncName    string
+	MiddlewareNames    []string
+}
+
+func genInitRouterStmtByTmpl(stmtInfo initRouterStmtInfo, varName string, funcName string,
+	buf *bytes.Buffer, option commonInitRouterStmtOption) {
+	initRouterStmtTmpl.Execute(buf, initRouterStmtTmplObj{
+		InitRouterVarName:  varName,
+		InitRouterFuncName: funcName,
+		URL:                strings.Trim(stmtInfo.marker.URL, `"`),
+		HandlerFuncName:    stmtInfo.handlerFuncName,
+		MiddlewareNames:    option.MiddlewareNames,
 	})
 }
