@@ -6,6 +6,7 @@ import (
 	"github.com/RivenZoo/backbone/logger"
 	"io"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 )
 
@@ -35,12 +36,12 @@ type commonInitRouterStmtOption struct {
 }
 
 type httpAPIGeneratorOption struct {
-	apiDefineFileImports  []importInfo
-	apiHandlerFileImports []importInfo
-	initRouterImports     []importInfo
-	commonAPIDefinition   commonHttpAPIDefinitionOption
-	commonHttpAPIHandler  commonHttpAPIHandlerOption
-	commonInitRouter      commonInitRouterStmtOption
+	ApiDefineFileImports  []importInfo
+	ApiHandlerFileImports []importInfo
+	InitRouterImports     []importInfo
+	CommonAPIDefinition   commonHttpAPIDefinitionOption
+	CommonHttpAPIHandler  commonHttpAPIHandlerOption
+	CommonInitRouter      commonInitRouterStmtOption
 }
 
 type HttpAPIGenerator struct {
@@ -108,7 +109,7 @@ func (g *HttpAPIGenerator) ParseHttpAPIMarkers() error {
 }
 
 func (g *HttpAPIGenerator) GenHttpAPIDeclare() {
-	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.apiDefineFileImports)
+	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.ApiDefineFileImports)
 	declaredFuncs := filterDelcaredFuncNames(g.source.node.Decls)
 	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(g.markers, declaredFuncs)
 	g.genAPIDeclareOutput(unDeclaredMarkers, unImported)
@@ -152,7 +153,7 @@ func (g *HttpAPIGenerator) genAPIDeclareOutput(unDeclaredMarkers []*HttpAPIMarke
 
 	apiTypeDeclare := func(m *HttpAPIMarker) *bytes.Buffer {
 		buf := bytes.NewBuffer(make([]byte, 0))
-		genHttpAPIDefinitionByTmpl(m, buf, g.option.commonAPIDefinition)
+		genHttpAPIDefinitionByTmpl(m, buf, g.option.CommonAPIDefinition)
 		return buf
 	}
 	for _, m := range unDeclaredMarkers {
@@ -202,7 +203,7 @@ func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 		for i, m := range g.markers {
 			ret = append(ret, apiHandlerDefineInfo{
 				marker:        m,
-				afterLine:     i + 1,
+				afterLine:     i + 3, // after package,import
 				varName:       httpAPIHandlerVarName(m.RequestType),
 				apiMethodName: httpAPIMethodName(m.RequestType),
 			})
@@ -214,7 +215,7 @@ func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 }
 
 func apiHandlerFileName(srcFilename string) string {
-	return fmt.Sprintf("%s_handlers.go", srcFilename)
+	return fmt.Sprintf("%s_handlers.go", strings.TrimSuffix(srcFilename, ".go"))
 }
 
 func (g *HttpAPIGenerator) addAPIHandlerImports() {
@@ -223,7 +224,7 @@ func (g *HttpAPIGenerator) addAPIHandlerImports() {
 		{"github.com/gin-gonic/gin", ""},
 	}
 
-	g.option.apiHandlerFileImports = mergeImports(g.option.apiHandlerFileImports, requiredImports)
+	g.option.ApiHandlerFileImports = mergeImports(g.option.ApiHandlerFileImports, requiredImports)
 }
 
 func (g *HttpAPIGenerator) GenHttpAPIHandler() {
@@ -237,9 +238,9 @@ func (g *HttpAPIGenerator) GenHttpAPIHandler() {
 	}
 
 	g.addAPIHandlerImports()
-	unImported := g.option.apiHandlerFileImports
+	unImported := g.option.ApiHandlerFileImports
 	if g.handlerSource != nil {
-		unImported = filterUnImportedPackage(g.handlerSource.node.Imports, g.option.apiHandlerFileImports)
+		unImported = filterUnImportedPackage(g.handlerSource.node.Imports, g.option.ApiHandlerFileImports)
 	}
 	g.genHttpAPIHandlerOutput(handlerDefineInfos, unImported)
 }
@@ -274,7 +275,7 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 	}
 	apiHandlerDefine := func(info apiHandlerDefineInfo) *bytes.Buffer {
 		buf := bytes.NewBuffer(make([]byte, 0))
-		genAPIHandlerByTmpl(info, buf, g.option.commonHttpAPIHandler)
+		genAPIHandlerByTmpl(info, buf, g.option.CommonHttpAPIHandler)
 		return buf
 	}
 	for _, info := range handlerDefineInfos {
@@ -287,8 +288,9 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 	}
 }
 
-func httpRouterInitFilename(pkgName string) string {
-	return fmt.Sprintf("%s_urls.go", pkgName)
+func (g *HttpAPIGenerator) httpRouterInitFilename() string {
+	filename := fmt.Sprintf("%s_urls.go", g.packageName())
+	return filepath.Join(filepath.Dir(g.srcFile), filename)
 }
 
 func httpRouterInitFuncName() string {
@@ -296,8 +298,7 @@ func httpRouterInitFuncName() string {
 }
 
 func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
-	pkgName := g.packageName()
-	g.routerInitFile = httpRouterInitFilename(pkgName)
+	g.routerInitFile = g.httpRouterInitFilename()
 
 	if g.parseInitRouterFile() != nil {
 		return
@@ -308,19 +309,19 @@ func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
 	}
 
 	g.addInitRouterImports()
-	unImported := g.option.initRouterImports
+	unImported := g.option.InitRouterImports
 	if g.routerInitSource != nil {
-		unImported = filterUnImportedPackage(g.routerInitSource.node.Imports, g.option.initRouterImports)
+		unImported = filterUnImportedPackage(g.routerInitSource.node.Imports, g.option.InitRouterImports)
 	}
 	g.genInitHttpAPIRouterOutput(stmtInfos, unImported)
 }
 
-func (g *HttpAPIGenerator) OutputInitHttpAPIRouter(w io.Writer) {
+func (g *HttpAPIGenerator) OutputInitHttpAPIRouter(w io.Writer) error {
 	merger := outputMerger{
 		src:   g.routerInitFileContent, //maybe nil
 		added: g.routerInitOutput,
 	}
-	merger.WriteTo(w)
+	return merger.WriteTo(w)
 }
 
 func (g *HttpAPIGenerator) parseInitRouterFile() error {
@@ -370,7 +371,7 @@ func (g *HttpAPIGenerator) addInitRouterImports() {
 	requiredImports := []importInfo{
 		{"github.com/gin-gonic/gin", ""},
 	}
-	g.option.initRouterImports = mergeImports(g.option.initRouterImports, requiredImports)
+	g.option.InitRouterImports = mergeImports(g.option.InitRouterImports, requiredImports)
 }
 
 func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmtInfo, unImported []importInfo) {
@@ -428,7 +429,7 @@ func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmt
 	}
 	initRouterStmtFn := func(stmtInfo initRouterStmtInfo) *bytes.Buffer {
 		buf := bytes.NewBuffer(make([]byte, 0))
-		genInitRouterStmtByTmpl(stmtInfo, initRouterVarName, registerRouterFuncName, buf, g.option.commonInitRouter)
+		genInitRouterStmtByTmpl(stmtInfo, initRouterVarName, registerRouterFuncName, buf, g.option.CommonInitRouter)
 		return buf
 	}
 	for _, info := range stmtInfos {

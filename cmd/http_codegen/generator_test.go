@@ -20,9 +20,9 @@ import (
 */
 `
 	g := newHttpAPIGenerator(httpAPIGeneratorOption{
-		apiDefineFileImports: []importInfo{{"github.com/gin-gonic/gin", ""},
+		ApiDefineFileImports: []importInfo{{"github.com/gin-gonic/gin", ""},
 			{"github.com/request/header", ""}},
-		commonAPIDefinition: commonHttpAPIDefinitionOption{
+		CommonAPIDefinition: commonHttpAPIDefinitionOption{
 			CommonRequestFields:  "header.RequestHeader",
 			CommonResponseFields: "header.ResponseHeader",
 			CommonFuncStmt:       "// set common code snippet here",
@@ -57,10 +57,10 @@ import (
 */
 `
 	g := newHttpAPIGenerator(httpAPIGeneratorOption{
-		apiHandlerFileImports: []importInfo{
+		ApiHandlerFileImports: []importInfo{
 			{"github.com/RivenZoo/backbone/http/handler/error_code", ""},
 		},
-		commonHttpAPIHandler: commonHttpAPIHandlerOption{
+		CommonHttpAPIHandler: commonHttpAPIHandlerOption{
 			ErrorEncoder: `func(err error) ([]byte, error) {
 	e, ok := err.(error_code.ErrorCode)
 	if !ok {
@@ -102,10 +102,10 @@ import (
 */
 `
 	g := newHttpAPIGenerator(httpAPIGeneratorOption{
-		initRouterImports: []importInfo{
+		InitRouterImports: []importInfo{
 			{"github.com/auth", ""},
 		},
-		commonInitRouter: commonInitRouterStmtOption{
+		CommonInitRouter: commonInitRouterStmtOption{
 			MiddlewareNames: []string{"auth.Auth"},
 		},
 	})

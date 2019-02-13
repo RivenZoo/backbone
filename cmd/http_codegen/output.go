@@ -55,7 +55,7 @@ func (m *outputMerger) WriteTo(w io.Writer) error {
 
 	code, err := format.Source(buf.Bytes())
 	if err != nil {
-		logger.Errorf("format source error %v", err)
+		logger.Errorf("format source %s error %v", buf.String(), err)
 		return err
 	}
 	w.Write(code)

@@ -19,7 +19,7 @@ func filterDelcaredFuncNames(decls []ast.Decl) []string {
 }
 
 func filterFuncUndeclaredHttpAPIMarkers(markers []*HttpAPIMarker, declaredFuncs []string) []*HttpAPIMarker {
-	unDeclaredMarkers := make([]*HttpAPIMarker, 0, len(markers)-len(declaredFuncs))
+	unDeclaredMarkers := make([]*HttpAPIMarker, 0)
 	findUndeclared := func(fn string) bool {
 		for _, declared := range declaredFuncs {
 			if fn == declared {
