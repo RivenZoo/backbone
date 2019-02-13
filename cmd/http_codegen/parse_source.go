@@ -1,10 +1,13 @@
 package main
 
 import (
+	"github.com/RivenZoo/backbone/logger"
 	"go/ast"
 	"go/parser"
 	"go/token"
 	"io"
+	"io/ioutil"
+	"os"
 )
 
 type SourceAst struct {
@@ -37,4 +40,16 @@ func ParseSourceCode(filePath string, code io.Reader) (*SourceAst, error) {
 	}
 	sa.node = node
 	return sa, nil
+}
+
+func readSource(filePath string) ([]byte, error) {
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil && os.IsNotExist(err) {
+		return nil, nil
+	}
+	if err != nil {
+		logger.Errorf("open file %s error %v", filePath, err)
+		return nil, err
+	}
+	return data, nil
 }

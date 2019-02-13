@@ -6,7 +6,6 @@ import (
 	"github.com/RivenZoo/backbone/logger"
 	"io"
 	"io/ioutil"
-	"os"
 	"strings"
 )
 
@@ -169,9 +168,29 @@ func httpAPIHandlerVarName(reqType string) string {
 	return fmt.Sprintf("%sHandler", reqType)
 }
 
+func (g *HttpAPIGenerator) parseAPIHandlerFile() error {
+	data, err := readSource(g.handlerDefineFile)
+	if err != nil {
+		return err
+	}
+	if data == nil {
+		// no file content
+		return nil
+	}
+
+	g.handlerFileContent = data
+
+	sa, err := ParseSourceCode(g.handlerDefineFile, bytes.NewReader(data))
+	if err != nil {
+		logger.Errorf("ParseSourceCode %s error %v", g.handlerDefineFile, err)
+		return err
+	}
+	g.handlerSource = sa
+	return nil
+}
+
 func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
-	data, err := ioutil.ReadFile(g.handlerDefineFile)
-	if err != nil && os.IsNotExist(err) {
+	if g.handlerSource == nil {
 		ret := []apiHandlerDefineInfo{}
 		for i, m := range g.markers {
 			ret = append(ret, apiHandlerDefineInfo{
@@ -183,18 +202,6 @@ func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 		}
 		return ret
 	}
-	if err != nil {
-		logger.Errorf("open file %s error %v", g.handlerDefineFile, err)
-		return nil
-	}
-	g.handlerFileContent = data
-
-	sa, err := ParseSourceCode(g.handlerDefineFile, bytes.NewReader(data))
-	if err != nil {
-		logger.Errorf("ParseSourceCode %s error %v", g.handlerDefineFile, err)
-		return nil
-	}
-	g.handlerSource = sa
 
 	return filterUndeclaredHandlers(g.handlerSource, g.markers)
 }
@@ -214,6 +221,9 @@ func (g *HttpAPIGenerator) addAPIHandlerImports() {
 
 func (g *HttpAPIGenerator) GenHttpAPIHandler() {
 	g.handlerDefineFile = apiHandlerFileName(g.source.filePath)
+	if err := g.parseAPIHandlerFile(); err != nil {
+		return
+	}
 	handlerDefineInfos := g.filterUndeclaredAPIHandler()
 	if len(handlerDefineInfos) == 0 {
 		return
