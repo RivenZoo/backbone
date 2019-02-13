@@ -2,50 +2,71 @@ package main
 
 import (
 	"github.com/RivenZoo/backbone/logger"
-	"go/ast"
-	"go/parser"
-	"go/token"
+	"io"
+	"os"
 )
 
 func main() {
 	parseFlagConfig()
-	logger.Debugf("%v", *config)
-	err := parseSourceFile2(config.inputFile)
-	if err != nil {
-		logger.Infof("parse error %v", err)
+
+	if config.debug {
+		logger.SetLogLevel(logger.DEBUG)
+	}
+
+	files := []string{}
+	if config.inputDir != "" {
+		files = listHttpAPIFiles(config.inputDir)
+	} else {
+		files = append(files, config.inputFile)
+	}
+	for _, fpath := range files {
+		handleSourceFile(fpath)
 	}
 }
 
-func parseSourceFile2(srcFile string) error {
-	fset := token.NewFileSet()
-	f, err := parser.ParseFile(fset, srcFile, nil, parser.ParseComments)
-	if err != nil {
-		return err
-	}
-
-	for _, cg := range f.Comments {
-		for _, c := range cg.List {
-			logger.Infof("comment: %s", c.Text)
-			logger.Infof("position: %v", fset.Position(c.Pos()))
-		}
-	}
-	logger.Infof("identity: %v", f.Name)
-	for _, decl := range f.Decls {
-		switch sd := decl.(type) {
-		case *ast.GenDecl:
-			for _, sp := range sd.Specs {
-				switch realSp := sp.(type) {
-				case *ast.ImportSpec:
-					logger.Infof("gen decl %v", realSp.Path)
-				case *ast.ValueSpec:
-					logger.Infof("gen decl %v", realSp.Names)
-				case *ast.TypeSpec:
-					logger.Infof("gen decl %v", realSp.Name)
-				}
-			}
-		case *ast.FuncDecl:
-			logger.Infof("func decl %v", sd.Name)
-		}
-	}
+func listHttpAPIFiles(inputDir string) []string {
 	return nil
+}
+
+func handleSourceFile(filePath string) {
+	g := newHttpAPIGenerator(*genOption)
+	g.ParseFile(filePath)
+	if err := g.ParseHttpAPIMarkers(); err != nil {
+		logger.Errorf("ParseHttpAPIMarkers error %v", err)
+		return
+	}
+	g.GenHttpAPIDeclare()
+	debugOutput("api_declare", g.sourceFileOutput)
+	outputCode(filePath, g.OutputAPIDeclare)
+
+	g.GenHttpAPIHandler()
+	debugOutput("api_handler", g.handlerOutput)
+	outputCode(apiHandlerFileName(filePath), g.OutputAPIHandler)
+
+	g.GenInitHttpAPIRouter()
+	debugOutput("init_router", g.routerInitOutput)
+	outputCode(g.httpRouterInitFilename(), g.OutputInitHttpAPIRouter)
+}
+
+func outputCode(filePath string, writeFunc func(w io.Writer) error) {
+	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		logger.Errorf("open file %s error %v", filePath, err)
+		return
+	}
+	err = writeFunc(f)
+	if err != nil {
+		logger.Errorf("writeFunc %s error %v", filePath, err)
+		return
+	}
+}
+
+func debugOutput(name string, outputs []generatedOutput) {
+	if !config.debug {
+		return
+	}
+	logger.Debugf("%s output %d", name, len(outputs))
+	for _, output := range outputs {
+		logger.Debugf("%s:%d %s", name, output.afterLine, output.buffer.String())
+	}
 }

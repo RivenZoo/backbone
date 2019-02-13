@@ -15,7 +15,7 @@ type HttpAPIMarker struct {
 	URL          string `json:"url"`
 	RequestType  string `json:"request_type"`
 	ResponseType string `json:"response_type"`
-	commentNode  *ast.CommentGroup
+	EndLine      int    `json:"end_line"`
 }
 
 func ParseHttpAPIMarkers(sa *SourceAst) ([]*HttpAPIMarker, error) {
@@ -33,7 +33,7 @@ func ParseHttpAPIMarkers(sa *SourceAst) ([]*HttpAPIMarker, error) {
 				return false
 			}
 			if m != nil {
-				m.commentNode = comments
+				m.EndLine = sa.fSet.Position(comments.End()).Line
 				markers = append(markers, m)
 			}
 			return true

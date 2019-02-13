@@ -10,13 +10,7 @@ import (
 	"os"
 )
 
-const (
-	ConfigTypeJSON ConfigType = "json"
-	ConfigTypeTOML ConfigType = "toml"
-	ConfigTypeYAML ConfigType = "yaml"
-)
 
-type ConfigType string
 
 var (
 	errUnsupportFormat = errors.New("unsupport input format")

@@ -1,47 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"go/ast"
 	"go/token"
-	"strings"
 )
-
-func httpAPIMethodName(requestTypeName string) string {
-	return fmt.Sprintf("handle%s", strings.Title(requestTypeName))
-}
-
-func filterDelcaredFuncNames(decls []ast.Decl) []string {
-	declaredFuncs := make([]string, 0)
-	for _, decl := range decls {
-		funcDecl, ok := decl.(*ast.FuncDecl)
-		if !ok {
-			continue
-		}
-		declaredFuncs = append(declaredFuncs, funcDecl.Name.Name)
-	}
-	return declaredFuncs
-}
-
-func filterFuncUndeclaredHttpAPIMarkers(markers []*HttpAPIMarker, declaredFuncs []string) []*HttpAPIMarker {
-	unDeclaredMarkers := make([]*HttpAPIMarker, 0, len(markers)-len(declaredFuncs))
-	findUndeclared := func(fn string) bool {
-		for _, declared := range declaredFuncs {
-			if fn == declared {
-				return true
-			}
-		}
-		return false
-	}
-	for _, m := range markers {
-		methodName := httpAPIMethodName(m.RequestType)
-		found := findUndeclared(methodName)
-		if !found {
-			unDeclaredMarkers = append(unDeclaredMarkers, m)
-		}
-	}
-	return unDeclaredMarkers
-}
 
 func genHttpAPIFuncDeclare(targetAst *SourceAst, unDeclaredMarkers []*HttpAPIMarker) {
 	for _, m := range unDeclaredMarkers {
@@ -69,8 +31,8 @@ func genHttpAPIFuncDeclare(targetAst *SourceAst, unDeclaredMarkers []*HttpAPIMar
 				VarType: "error",
 			},
 		}
-		funcDecl := makeFuncDecl(m.commentNode.End()+1, methodName,
-			params, retParams, m.commentNode)
+		funcDecl := makeFuncDecl(1, methodName,
+			params, retParams, nil)
 		targetAst.node.Decls = append(targetAst.node.Decls, funcDecl)
 	}
 	targetAst.node.Comments = nil
@@ -142,13 +104,13 @@ func genTypeDeclares(targetAst *SourceAst, undeclaredTypes []undeclaredHttpAPIMa
 	decls := make([]ast.Decl, 0)
 	for _, ut := range undeclaredTypes {
 		if ut.requestType != "" {
-			typeDecl := makeStructTypeDecl(ut.marker.commentNode.Pos()-1, ut.requestType)
+			typeDecl := makeStructTypeDecl(1, ut.requestType)
 			if typeDecl != nil {
 				decls = append(decls, typeDecl)
 			}
 		}
 		if ut.responseType != "" {
-			typeDecl := makeStructTypeDecl(ut.marker.commentNode.Pos()-2, ut.responseType)
+			typeDecl := makeStructTypeDecl(2, ut.responseType)
 			if typeDecl != nil {
 				decls = append(decls, typeDecl)
 			}
@@ -179,3 +141,5 @@ func copyCommentGroup(cg *ast.CommentGroup) *ast.CommentGroup {
 	}
 	return ret
 }
+
+
