@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-const registerRouterFuncName = "Post"
+const registerRouterFuncName = "POST"
 
 type importInfo struct {
 	PkgPath string
@@ -108,7 +108,16 @@ func (g *HttpAPIGenerator) ParseHttpAPIMarkers() error {
 	return nil
 }
 
+func (g *HttpAPIGenerator) addAPIDeclareImports() {
+	requiredImports := []importInfo{
+		{"github.com/gin-gonic/gin", ""},
+	}
+
+	g.option.ApiDefineFileImports = mergeImports(g.option.ApiDefineFileImports, requiredImports)
+}
+
 func (g *HttpAPIGenerator) GenHttpAPIDeclare() {
+	g.addAPIDeclareImports()
 	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.ApiDefineFileImports)
 	declaredFuncs := filterDelcaredFuncNames(g.source.node.Decls)
 	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(g.markers, declaredFuncs)
@@ -294,7 +303,7 @@ func (g *HttpAPIGenerator) httpRouterInitFilename() string {
 }
 
 func httpRouterInitFuncName() string {
-	return "registerUrls"
+	return "InitRouters"
 }
 
 func (g *HttpAPIGenerator) GenInitHttpAPIRouter() {
@@ -358,7 +367,7 @@ func (g *HttpAPIGenerator) filterUnRegisterAPI(initFunc string) []initRouterStmt
 			ret = append(ret, initRouterStmtInfo{
 				marker:          m,
 				afterLine:       5, // package,space,import,space,func
-				handlerFuncName: httpAPIMethodName(m.RequestType),
+				handlerFuncName: httpAPIHandlerVarName(m.RequestType),
 			})
 		}
 		return ret
@@ -370,6 +379,8 @@ func (g *HttpAPIGenerator) filterUnRegisterAPI(initFunc string) []initRouterStmt
 func (g *HttpAPIGenerator) addInitRouterImports() {
 	requiredImports := []importInfo{
 		{"github.com/gin-gonic/gin", ""},
+		{"github.com/RivenZoo/backbone/http/handler", ""},
+		{"github.com/RivenZoo/backbone/services/httpserver", ""},
 	}
 	g.option.InitRouterImports = mergeImports(g.option.InitRouterImports, requiredImports)
 }
@@ -408,7 +419,7 @@ func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmt
 	if genInitFunc {
 		// begin new init func define
 		buf := bytes.NewBuffer(make([]byte, 0))
-		closeFunc := genFuncDefine(initFuncName, []string{"engine *gin.Engine"}, buf)
+		closeFunc := genFuncDefine(initFuncName, nil, initRouterVarName, buf)
 		end := 3 // after package, import
 		if len(g.routerInitOutput) > 0 {
 			end = g.routerInitOutput[len(g.routerInitOutput)-1].afterLine + 1

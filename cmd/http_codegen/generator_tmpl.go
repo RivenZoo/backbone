@@ -20,6 +20,7 @@ type {{.ResponseType}} struct {
 func {{.MethodName}}(c *gin.Context, req *{{.RequestType}}) (resp *{{.ResponseType}}, err error) {
 	{{.CommonFuncStmt}}
 	// TODO: implement {{.MethodName}}
+	return nil, nil
 }
 `))
 
@@ -108,17 +109,22 @@ func genAPIHandlerByTmpl(info apiHandlerDefineInfo, buf *bytes.Buffer, option co
 
 var funcDefineTmpl = template.Must(template.New("funcDefineTmpl").
 	Parse(`func {{.FuncName}}({{.Args}}) {
+	{{.InitVarName}} := handler.NewGinHandler().GetGin()
+	defer httpserver.GetHTTPServer().SetHTTPHandler({{.InitVarName}})
+
 `))
 
 type funcDefineTmplObj struct {
-	FuncName string
-	Args     string
+	FuncName    string
+	Args        string
+	InitVarName string
 }
 
-func genFuncDefine(funcName string, args []string, buf *bytes.Buffer) (closeFuncDefine func(buf *bytes.Buffer)) {
+func genFuncDefine(funcName string, args []string, initVarName string, buf *bytes.Buffer) (closeFuncDefine func(buf *bytes.Buffer)) {
 	funcDefineTmpl.Execute(buf, funcDefineTmplObj{
-		FuncName: funcName,
-		Args:     strings.Join(args, ", "),
+		FuncName:    funcName,
+		Args:        strings.Join(args, ", "),
+		InitVarName: initVarName,
 	})
 	return func(buf *bytes.Buffer) {
 		buf.Write([]byte{'\n', '}', '\n'})

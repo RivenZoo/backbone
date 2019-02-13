@@ -43,7 +43,7 @@ func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []importInfo) (unIm
 
 	findImported := func(pkg string) bool {
 		for _, imp := range imports {
-			if pkg == imp.Path.Value {
+			if strings.Trim(pkg, `"`) == strings.Trim(imp.Path.Value, `"`) {
 				return true
 			}
 		}
@@ -110,7 +110,7 @@ func filterUnInitRouters(sa *SourceAst, initFuncName, registerFuncName string, m
 			ret = append(ret, initRouterStmtInfo{
 				marker:          m,
 				afterLine:       sa.fSet.Position(sa.node.End()).Line,
-				handlerFuncName: httpAPIMethodName(m.RequestType),
+				handlerFuncName: httpAPIHandlerVarName(m.RequestType),
 			})
 		}
 		return ret
