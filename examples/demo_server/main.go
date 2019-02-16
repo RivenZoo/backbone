@@ -7,9 +7,6 @@ import (
 	"github.com/RivenZoo/backbone/logger"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/backbone/services"
-	"github.com/RivenZoo/backbone/signalutils"
-	"os"
-	"syscall"
 )
 
 var cfgFile *string
@@ -31,9 +28,7 @@ func main() {
 	logger.Log("init services")
 	services.GetServiceContainer().Init()
 
-	signalutils.HandleSignals(func(sig os.Signal) {
-		services.GetServiceContainer().Close()
-	}, syscall.SIGINT, syscall.SIGTERM)
+	registerSignal()
 
 	// init controllers
 	controllers.InitRouters()
