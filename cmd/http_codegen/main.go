@@ -4,6 +4,8 @@ import (
 	"github.com/RivenZoo/backbone/logger"
 	"io"
 	"os"
+	"path/filepath"
+	"strings"
 )
 
 func main() {
@@ -11,6 +13,8 @@ func main() {
 
 	if config.debug {
 		logger.SetLogLevel(logger.DEBUG)
+	} else {
+		logger.SetLogLevel(logger.INFO)
 	}
 
 	files := []string{}
@@ -19,13 +23,62 @@ func main() {
 	} else {
 		files = append(files, config.inputFile)
 	}
+	
+	logger.Debugf("input files %v", files)
 	for _, fpath := range files {
 		handleSourceFile(fpath)
 	}
 }
 
 func listHttpAPIFiles(inputDir string) []string {
-	return nil
+	files := []string{}
+	filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			logger.Errorf("read path %s error %v", path, err)
+			return filepath.SkipDir
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if strings.HasSuffix(path, "_handlers.go") || strings.HasSuffix(path, "_urls.go") {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	return files
+}
+
+func sourceModifiedSinceLastGen(filePath string, g *HttpAPIGenerator) bool {
+	info, err := os.Lstat(filePath)
+	if err != nil {
+		// ignore error, treat as modified
+		logger.Debugf("Lstat file %s error %v", filePath, err)
+		return true
+	}
+
+	handlerFile := apiHandlerFileName(filePath)
+	handlerFileInfo, err := os.Lstat(handlerFile)
+	if err != nil {
+		// ignore error, treat as modified
+		logger.Debugf("Lstat file %s error %v", handlerFile, err)
+		return true
+	}
+
+	if info.ModTime().After(handlerFileInfo.ModTime()) {
+		return true
+	}
+	initRouterFileInfo, err := os.Lstat(g.httpRouterInitFilename())
+	if err != nil {
+		// ignore error, treat as modified
+		logger.Debugf("Lstat file %s error %v", handlerFile, err)
+		return true
+	}
+
+	if info.ModTime().After(initRouterFileInfo.ModTime()) {
+		return true
+	}
+	return false
 }
 
 func handleSourceFile(filePath string) {
@@ -35,6 +88,12 @@ func handleSourceFile(filePath string) {
 		logger.Errorf("ParseHttpAPIMarkers error %v", err)
 		return
 	}
+
+	if !sourceModifiedSinceLastGen(filePath, g) {
+		logger.Debugf("source file %s not modified since last generate", filePath)
+		return
+	}
+
 	g.GenHttpAPIDeclare()
 	debugOutput("api_declare", g.sourceFileOutput)
 	outputCode(filePath, g.OutputAPIDeclare)
