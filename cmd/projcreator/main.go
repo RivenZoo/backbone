@@ -43,6 +43,14 @@ func main() {
 		logger.Errorf("copy from %s to %s error %v", src, dst, err)
 		os.Exit(-1)
 	}
+
+	execOut, err := execProgram(config.ExecAfterCreate, dst)
+	if err != nil {
+		logger.Errorf("exec %s error %v, skipped", config.ExecAfterCreate, err)
+	} else {
+		logger.Infof("exec output\n %s", string(execOut))
+	}
+	writeConfig(dst)
 }
 
 func copyDirRecursively(srcDir, outputDir string) error {

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"github.com/RivenZoo/backbone/logger"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,14 +13,15 @@ import (
 var config *Config
 
 type Config struct {
-	GitRepoURL  string
-	GitVersion  string
-	LocalPath   string
-	ProjectName string
-	GoModName   string
-	OutputDir   string
-	TmplArgs    map[string]string
-	Debug       bool
+	GitRepoURL      string
+	GitVersion      string
+	LocalPath       string
+	ProjectName     string
+	GoModName       string
+	OutputDir       string
+	ExecAfterCreate string
+	TmplArgs        map[string]string
+	Debug           bool
 }
 
 func (c *Config) String() string {
@@ -40,6 +42,7 @@ func parseFlagConfig() {
 	modName := flag.String("modName", "", "project mod full name, if set go mod will be used, eg github.com/RivenZoo/backbone")
 	projName := flag.String("project", "", "project name, if not set it will be parsed from mod name")
 	outputDir := flag.String("output", "./", "project dir, default current dir")
+	execAfterCreate := flag.String("exec", "", "execute program in output dir after project created")
 	debug := flag.Bool("debug", false, "debug flag")
 	flag.Parse()
 
@@ -49,6 +52,7 @@ func parseFlagConfig() {
 	config.GoModName = *modName
 	config.ProjectName = *projName
 	config.OutputDir = *outputDir
+	config.ExecAfterCreate = *execAfterCreate
 	config.Debug = *debug
 
 	if config.GitRepoURL == "" && config.LocalPath == "" {
@@ -94,4 +98,15 @@ func parseProjectName() {
 func addFlagToTmplArgs() {
 	config.TmplArgs["modName"] = config.GoModName
 	config.TmplArgs["project"] = config.ProjectName
+}
+
+const saveConfigFileName = "project-create-params.json"
+
+func writeConfig(outputDir string) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		logger.Errorf("write config error %v", err)
+		return
+	}
+	ioutil.WriteFile(filepath.Join(outputDir, saveConfigFileName), data, 0440)
 }
