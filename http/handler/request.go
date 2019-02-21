@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"github.com/RivenZoo/backbone/http/handler/error_code"
 	"github.com/RivenZoo/backbone/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -86,11 +85,11 @@ func getRequestBody(c *gin.Context, bodyKey string) ([]byte, error) {
 	if bodyKey != "" {
 		v, exists := c.Get(bodyKey)
 		if !exists {
-			return nil, error_code.ErrServerError
+			return c.GetRawData()
 		}
 		data, ok := v.([]byte)
 		if !ok {
-			return nil, error_code.ErrServerError
+			return c.GetRawData()
 		}
 		return data, nil
 	}
