@@ -1,11 +1,8 @@
 package controllers
 
-import "github.com/RivenZoo/backbone/http/handler"
-import "github.com/RivenZoo/backbone/services/httpserver"
+import "github.com/gin-gonic/gin"
 
-func InitRouters() {
-	engine := handler.NewGinHandler().GetGin()
-	defer httpserver.GetHTTPServer().SetHTTPHandler(engine)
+func InitRouters(engine *gin.Engine) {
 
 	engine.POST("/url/abbr", abbreviateURLReqHandler)
 

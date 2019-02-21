@@ -4,9 +4,11 @@ import (
 	"flag"
 	"github.com/RivenZoo/backbone/examples/demo_server/config"
 	"github.com/RivenZoo/backbone/examples/demo_server/controllers"
+	"github.com/RivenZoo/backbone/http/handler"
 	"github.com/RivenZoo/backbone/logger"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/backbone/services"
+	"github.com/RivenZoo/backbone/services/httpserver"
 )
 
 var cfgFile *string
@@ -31,7 +33,9 @@ func main() {
 	registerSignal()
 
 	// init controllers
-	controllers.InitRouters()
+	g := handler.NewGinHandler().GetGin()
+	controllers.InitRouters(g)
+	httpserver.GetHTTPServer().SetHTTPHandler(g)
 
 	// last: run service
 	logger.Log("run services")

@@ -39,3 +39,4 @@ func handleAbbreviateURLReq(c *gin.Context, req *abbreviateURLReq) (resp *abbrev
 func formatURL(key string) string {
 	return fmt.Sprintf("http://example.com/abbr/%s", key)
 }
+
