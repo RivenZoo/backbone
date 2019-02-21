@@ -123,7 +123,7 @@ func TestHandleError(t *testing.T) {
 
 	retData, err := ioutil.ReadAll(w.Body)
 	assert.Nil(t, err)
-	expect, err := defaultErrorEncoder(error_code.ErrServerError)
+	expect, err := defaultErrorEncoder(c, error_code.ErrServerError)
 	assert.Nil(t, err)
 	assert.EqualValues(t, expect, retData)
 

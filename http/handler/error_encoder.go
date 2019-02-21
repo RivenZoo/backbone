@@ -1,8 +1,11 @@
 package handler
 
-import "github.com/RivenZoo/backbone/http/handler/error_code"
+import (
+	"github.com/RivenZoo/backbone/http/handler/error_code"
+	"github.com/gin-gonic/gin"
+)
 
-var defaultErrorEncoder = ErrorResponseEncodeFunc(func(err error) ([]byte, error) {
+var defaultErrorEncoder = ErrorResponseEncodeFunc(func(c *gin.Context, err error) ([]byte, error) {
 	if err == nil {
 		return []byte(error_code.OK.Error()), nil
 	}

@@ -11,7 +11,7 @@ type RequestBodyDecodeFunc func(data []byte, v interface{}) error
 
 type ResponseBodyEncodeFunc func(v interface{}) ([]byte, error)
 
-type ErrorResponseEncodeFunc func(err error) ([]byte, error)
+type ErrorResponseEncodeFunc func(c *gin.Context, err error) ([]byte, error)
 
 type RequestProcessFunc func(c *gin.Context, req interface{}) (resp interface{}, err error)
 
@@ -100,7 +100,7 @@ func handleError(c *gin.Context, err error, encoder ErrorResponseEncodeFunc) {
 	if encoder == nil {
 		encoder = defaultErrorEncoder
 	}
-	data, err := encoder(err)
+	data, err := encoder(c, err)
 	if err != nil {
 		logger.Logf("[ERROR] EncodeError error %v", err)
 		return
