@@ -109,9 +109,6 @@ func genAPIHandlerByTmpl(info apiHandlerDefineInfo, buf *bytes.Buffer, option co
 
 var funcDefineTmpl = template.Must(template.New("funcDefineTmpl").
 	Parse(`func {{.FuncName}}({{.Args}}) {
-	{{.InitVarName}} := handler.NewGinHandler().GetGin()
-	defer httpserver.GetHTTPServer().SetHTTPHandler({{.InitVarName}})
-
 `))
 
 type funcDefineTmplObj struct {

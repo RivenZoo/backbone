@@ -109,7 +109,7 @@ func filterUnInitRouters(sa *SourceAst, initFuncName, registerFuncName string, m
 		for _, m := range markers {
 			ret = append(ret, initRouterStmtInfo{
 				marker:          m,
-				afterLine:       sa.fSet.Position(sa.node.End()).Line,
+				afterLine:       sa.fSet.Position(sa.node.End()).Line + 5, // package,import,func
 				handlerFuncName: httpAPIHandlerVarName(m.RequestType),
 			})
 		}

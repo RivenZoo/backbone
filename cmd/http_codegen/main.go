@@ -23,7 +23,7 @@ func main() {
 	} else {
 		files = append(files, config.inputFile)
 	}
-	
+
 	logger.Debugf("input files %v", files)
 	for _, fpath := range files {
 		handleSourceFile(fpath)
@@ -40,7 +40,9 @@ func listHttpAPIFiles(inputDir string) []string {
 		if info.IsDir() {
 			return nil
 		}
-		if strings.HasSuffix(path, "_handlers.go") || strings.HasSuffix(path, "_urls.go") {
+		if strings.HasSuffix(path, "_handlers.go") ||
+			strings.HasSuffix(path, "_urls.go") ||
+			strings.HasSuffix(path, "_test.go") {
 			return nil
 		}
 		files = append(files, path)
@@ -56,6 +58,7 @@ func sourceModifiedSinceLastGen(filePath string, g *HttpAPIGenerator) bool {
 		logger.Debugf("Lstat file %s error %v", filePath, err)
 		return true
 	}
+	logger.Debugf("file %s mod time %s", filePath, info.ModTime())
 
 	handlerFile := apiHandlerFileName(filePath)
 	handlerFileInfo, err := os.Lstat(handlerFile)
@@ -64,16 +67,20 @@ func sourceModifiedSinceLastGen(filePath string, g *HttpAPIGenerator) bool {
 		logger.Debugf("Lstat file %s error %v", handlerFile, err)
 		return true
 	}
+	logger.Debugf("file %s mod time %s", handlerFile, handlerFileInfo.ModTime())
 
 	if info.ModTime().After(handlerFileInfo.ModTime()) {
 		return true
 	}
-	initRouterFileInfo, err := os.Lstat(g.httpRouterInitFilename())
+
+	initRouterFile := g.httpRouterInitFilename()
+	initRouterFileInfo, err := os.Lstat(initRouterFile)
 	if err != nil {
 		// ignore error, treat as modified
 		logger.Debugf("Lstat file %s error %v", handlerFile, err)
 		return true
 	}
+	logger.Debugf("file %s mod time %s", initRouterFile, initRouterFileInfo.ModTime())
 
 	if info.ModTime().After(initRouterFileInfo.ModTime()) {
 		return true
@@ -86,6 +93,9 @@ func handleSourceFile(filePath string) {
 	g.ParseFile(filePath)
 	if err := g.ParseHttpAPIMarkers(); err != nil {
 		logger.Errorf("ParseHttpAPIMarkers error %v", err)
+		return
+	}
+	if len(g.markers) == 0 {
 		return
 	}
 

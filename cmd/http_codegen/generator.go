@@ -379,8 +379,6 @@ func (g *HttpAPIGenerator) filterUnRegisterAPI(initFunc string) []initRouterStmt
 func (g *HttpAPIGenerator) addInitRouterImports() {
 	requiredImports := []importInfo{
 		{"github.com/gin-gonic/gin", ""},
-		{"github.com/RivenZoo/backbone/http/handler", ""},
-		{"github.com/RivenZoo/backbone/services/httpserver", ""},
 	}
 	g.option.InitRouterImports = mergeImports(g.option.InitRouterImports, requiredImports)
 }
@@ -419,7 +417,8 @@ func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmt
 	if genInitFunc {
 		// begin new init func define
 		buf := bytes.NewBuffer(make([]byte, 0))
-		closeFunc := genFuncDefine(initFuncName, nil, initRouterVarName, buf)
+		closeFunc := genFuncDefine(initFuncName, []string{fmt.Sprintf("%s *gin.Engine", initRouterVarName)},
+			initRouterVarName, buf)
 		end := 3 // after package, import
 		if len(g.routerInitOutput) > 0 {
 			end = g.routerInitOutput[len(g.routerInitOutput)-1].afterLine + 1
@@ -445,8 +444,12 @@ func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmt
 	}
 	for _, info := range stmtInfos {
 		buf := initRouterStmtFn(info)
+		afterLine := info.afterLine
+		if genInitFunc {
+			afterLine = g.routerInitOutput[len(g.routerInitOutput)-1].afterLine + 1
+		}
 		output := generatedOutput{
-			afterLine: info.afterLine,
+			afterLine: afterLine,
 			buffer:    buf,
 		}
 		g.routerInitOutput = append(g.routerInitOutput, output)
