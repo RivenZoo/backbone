@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bytes"
 	"github.com/RivenZoo/backbone/logger"
 	"io"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -121,14 +123,15 @@ func handleSourceFile(filePath string) {
 }
 
 func outputCode(filePath string, writeFunc func(w io.Writer) error) {
-	f, err := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
-	if err != nil {
-		logger.Errorf("open file %s error %v", filePath, err)
-		return
-	}
-	err = writeFunc(f)
+	buf := bytes.NewBuffer(make([]byte, 0))
+	err := writeFunc(buf)
 	if err != nil {
 		logger.Errorf("writeFunc %s error %v", filePath, err)
+		return
+	}
+	err = ioutil.WriteFile(filePath, buf.Bytes(), 0644)
+	if err != nil {
+		logger.Errorf("write to file %s error %v", filePath, err)
 		return
 	}
 }
