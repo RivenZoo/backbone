@@ -90,7 +90,10 @@ func sourceModifiedSinceLastGen(filePath string, g *HttpAPIGenerator) bool {
 
 func handleSourceFile(filePath string) {
 	g := newHttpAPIGenerator(*genOption)
-	g.ParseFile(filePath)
+	if err := g.ParseFile(filePath); err != nil {
+		logger.Errorf("parse file %s error %v", filePath, err)
+		return
+	}
 	if err := g.ParseHttpAPIMarkers(); err != nil {
 		logger.Errorf("ParseHttpAPIMarkers error %v", err)
 		return
