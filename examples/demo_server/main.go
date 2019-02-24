@@ -6,8 +6,8 @@ import (
 	"github.com/RivenZoo/backbone/examples/demo_server/controllers"
 	"github.com/RivenZoo/backbone/http/handler"
 	"github.com/RivenZoo/backbone/logger"
-	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/backbone/services"
+	"github.com/RivenZoo/backbone/objects_container"
 	"github.com/RivenZoo/backbone/services/httpserver"
 )
 
@@ -21,14 +21,9 @@ func main() {
 	logger.Log("load config")
 	config.MustLoadConfig(*cfgFile)
 
-	// second: init all resource
-	logger.Log("init resources")
-	resources.GetResourceContainer().Init()
-	defer resources.GetResourceContainer().Close()
-
-	// third: init all service
-	logger.Log("init services")
-	services.GetServiceContainer().Init()
+	// second: init all resources and services
+	logger.Log("init resources and services")
+	objects_container.Init()
 
 	registerSignal()
 

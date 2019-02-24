@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/RivenZoo/backbone/examples/demo_server/model"
 	"github.com/RivenZoo/backbone/http/handler/error_code"
+	"github.com/RivenZoo/backbone/logger"
 	"github.com/gin-gonic/gin"
 	"hash/adler32"
 	"strconv"
@@ -22,7 +23,7 @@ type abbreviateURLResp struct {
 }
 
 func handleAbbreviateURLReq(c *gin.Context, req *abbreviateURLReq) (resp *abbreviateURLResp, err error) {
-
+	logger.Infof("request %v", req)
 	if req.URL == "" {
 		return nil, error_code.ErrBadRequest
 	}
@@ -33,7 +34,6 @@ func handleAbbreviateURLReq(c *gin.Context, req *abbreviateURLReq) (resp *abbrev
 		return nil, err
 	}
 	return &abbreviateURLResp{URL: formatURL(s)}, nil
-	return nil, nil
 }
 
 func formatURL(key string) string {
