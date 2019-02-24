@@ -2,6 +2,8 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/RivenZoo/dsncfg v1.1.1 h1:5j1c4A/gXNtuXi4/tb4eBzroK0N0OyCxUY8r80tNRQ8=
 github.com/RivenZoo/dsncfg v1.1.1/go.mod h1:OUWi4kjNTK8y1eJ/27+xQ3V3f49iilSQWqH/AKEjVso=
+github.com/RivenZoo/injectgo v0.4.1 h1:Z1UaRag6MuCrQnWyKjSGzjQLQ6phNKX/gD93P/eQarY=
+github.com/RivenZoo/injectgo v0.4.1/go.mod h1:zl3mmBIJ4x99FvNViU/E7TqDCVlSqBqSVj6vv+NKUEE=
 github.com/RivenZoo/sqlagent v1.4.1 h1:g693bARyCtEEeAfhFWdoUEkuGQy2hD3VsFccdtsEmJc=
 github.com/RivenZoo/sqlagent v1.4.1/go.mod h1:cDvQ5648kysM8DjjbI0zbKM6RKIn1Tcv8e8uZ+yzF2c=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
