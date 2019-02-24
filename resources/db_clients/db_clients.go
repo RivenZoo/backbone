@@ -1,12 +1,15 @@
 package db_clients
 
 import (
+	"fmt"
 	"github.com/RivenZoo/backbone/bootconfig"
+	"github.com/RivenZoo/backbone/objects_container"
 	"github.com/RivenZoo/backbone/resource_manager"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/dsncfg"
 	"github.com/RivenZoo/sqlagent"
 	_ "github.com/go-sql-driver/mysql"
+	"reflect"
 )
 
 var sqlagentContainer *namedSqlAgents
@@ -66,6 +69,12 @@ func GetClient(name string) *sqlagent.SqlAgent {
 	return nil
 }
 
+func GetInjectInfo(name string) (injectName string, tp reflect.Type) {
+	injectName = fmt.Sprintf("res.db_clients.%s", name)
+	tp = reflect.TypeOf((*sqlagent.SqlAgent)(nil))
+	return
+}
+
 func init() {
 	key := GetBootConfigKey()
 	creator := resource_manager.NewResourceCreator(func() (*namedSqlAgents, error) {
@@ -76,7 +85,21 @@ func init() {
 			return nil, err
 		}
 
-		return newNamedSqlAgent(cfg)
+		namedSA, err := newNamedSqlAgent(cfg)
+		if err != nil {
+			return nil, err
+		}
+		injectNamedSqlAgents(namedSA)
+		return namedSA, nil
 	}, &sqlagentContainer)
 	resources.GetResourceContainer().RegisterCreator(key, creator)
+}
+
+func injectNamedSqlAgents(namedSA *namedSqlAgents) {
+	c := objects_container.GetObjectContainer()
+	for i := range namedSA.sqlagents {
+		sa := &namedSA.sqlagents[i]
+		injectName, _ := GetInjectInfo(sa.name)
+		c.ProvideByName(injectName, sa.sqlagent)
+	}
 }
