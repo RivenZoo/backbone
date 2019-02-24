@@ -137,3 +137,26 @@ func (c *RedisConnector) Close() error {
 	}
 	return nil
 }
+
+type RedisDBClient struct {
+	Name    string `json:"name"`
+	DBIndex int    `json:"db_index"`
+	Client  *redis.Client
+}
+
+func (c *RedisConnector) AllRedisDBClients() []RedisDBClient {
+	ret := make([]RedisDBClient, 0)
+	for i := range c.namedClients {
+		for idx, cli := range c.namedClients[i].clients {
+			if cli == nil {
+				continue
+			}
+			ret = append(ret, RedisDBClient{
+				Name:    c.namedClients[i].name,
+				DBIndex: idx,
+				Client:  cli,
+			})
+		}
+	}
+	return ret
+}
