@@ -18,6 +18,9 @@ type ResourceContainer struct {
 	resourceMap       map[string]Closable
 	needToInitObjects []Initializable
 	creators          []namedResourceCreator
+
+	isInited bool
+	isClosed bool
 }
 
 func NewResourceContainer() *ResourceContainer {
@@ -66,6 +69,10 @@ func (rc *ResourceContainer) GetResource(name string) Closable {
 // Then call Init if resource object is Initializable.
 // Panics if any error occurs.
 func (rc *ResourceContainer) Init() {
+	if rc.isInited {
+		return
+	}
+
 	// first: create all resource objects
 	for _, creator := range rc.creators {
 		obj, err := creator.createResource()
@@ -84,16 +91,21 @@ func (rc *ResourceContainer) Init() {
 			panic(err)
 		}
 	}
+	rc.isInited = true
 	return
 }
 
 // Close all resource objects.
 // Panics if error occurs.
 func (rc *ResourceContainer) Close() {
+	if rc.isClosed {
+		return
+	}
 	for _, obj := range rc.resourceMap {
 		if err := obj.Close(); err != nil {
 			panic(err)
 		}
 	}
+	rc.isClosed = true
 	return
 }

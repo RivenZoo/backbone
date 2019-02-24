@@ -21,6 +21,9 @@ type ServiceContainer struct {
 	stoppableServices []Stoppable
 	stopCtx           context.Context
 	cancelFunc        context.CancelFunc
+
+	isInited bool
+	isClosed bool
 }
 
 func NewServiceContainer() *ServiceContainer {
@@ -66,6 +69,9 @@ func (c *ServiceContainer) GetService(name string) Runnable {
 // Init create all service object by calling create function.
 // Panics if error occurs.
 func (c *ServiceContainer) Init() {
+	if c.isInited {
+		return
+	}
 	for _, creator := range c.creators {
 		obj, err := creator.createService()
 		if err != nil {
@@ -77,6 +83,7 @@ func (c *ServiceContainer) Init() {
 			c.stoppableServices = append(c.stoppableServices, stoppableSvc)
 		}
 	}
+	c.isInited = true
 }
 
 // RunServices run service in seprate routine then wait all service to stop.
@@ -107,10 +114,14 @@ func (c *ServiceContainer) runService(svc Runnable, wg *sync.WaitGroup) {
 // Close stop all stoppable service.
 // Panics if error occurs.
 func (c *ServiceContainer) Close() {
+	if c.isClosed {
+		return
+	}
 	for _, svc := range c.stoppableServices {
 		if err := svc.Stop(); err != nil {
 			panic(err)
 		}
 	}
 	c.cancelFunc()
+	c.isClosed = true
 }
