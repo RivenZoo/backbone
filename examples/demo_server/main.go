@@ -4,14 +4,20 @@ import (
 	"flag"
 	"github.com/RivenZoo/backbone/examples/demo_server/config"
 	"github.com/RivenZoo/backbone/examples/demo_server/controllers"
+	"github.com/RivenZoo/backbone/examples/demo_server/middlewares"
 	"github.com/RivenZoo/backbone/http/handler"
 	"github.com/RivenZoo/backbone/logger"
-	"github.com/RivenZoo/backbone/services"
 	"github.com/RivenZoo/backbone/objects_container"
+	"github.com/RivenZoo/backbone/services"
 	"github.com/RivenZoo/backbone/services/httpserver"
+	"github.com/gin-gonic/gin"
 )
 
 var cfgFile *string
+
+func initMiddleware(g *gin.Engine) {
+	g.Use(middlewares.CountURL())
+}
 
 func main() {
 	cfgFile = flag.String("cfg", "./conf/cfg.json", "config file path")
@@ -29,6 +35,7 @@ func main() {
 
 	// init controllers
 	g := handler.NewGinHandler().GetGin()
+	initMiddleware(g)
 	controllers.InitRouters(g)
 	httpserver.GetHTTPServer().SetHTTPHandler(g)
 
