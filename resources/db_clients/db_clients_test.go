@@ -24,7 +24,7 @@ func (cfg dbBootConfig) GetConfig(key string) (bootconfig.RawConfigData, configu
 				"name": "test",
 				"type": "mysql",
 				"user": "root",
-				"password": "",
+				"password": "testadmin",
 				"parameters": {
 				"parseTime": "true",
 				"charset": "utf8mb4,utf8",

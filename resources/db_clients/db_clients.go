@@ -3,7 +3,6 @@ package db_clients
 import (
 	"fmt"
 	"github.com/RivenZoo/backbone/bootconfig"
-	"github.com/RivenZoo/backbone/objects_container"
 	"github.com/RivenZoo/backbone/resource_manager"
 	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/dsncfg"
@@ -28,7 +27,7 @@ type dbConfig struct {
 	Sql        sqlConfig               `json:"sql"`
 }
 
-// DBConfig config json format
+// ** DBConfig config json format **
 // {
 // "dbs": {
 //		"test-db": {
@@ -89,17 +88,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		injectNamedSqlAgents(namedSA)
 		return namedSA, nil
 	}, &sqlagentContainer)
 	resources.GetResourceContainer().RegisterCreator(key, creator)
-}
-
-func injectNamedSqlAgents(namedSA *namedSqlAgents) {
-	c := objects_container.GetObjectContainer()
-	for i := range namedSA.sqlagents {
-		sa := &namedSA.sqlagents[i]
-		injectName, _ := GetInjectInfo(sa.name)
-		c.ProvideByName(injectName, sa.sqlagent)
-	}
 }

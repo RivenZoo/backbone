@@ -17,7 +17,11 @@ func (cfg redisBootConfig) GetConfig(key string) (bootconfig.RawConfigData, conf
 		return []byte(`
 {
   "redis_config": {
-	 "test": {
+	 "default": {
+	   "addr": "127.0.0.1:6379",
+ 	   "db_indexs": [0, 1, 2]
+	 },
+	"test": {
 	   "addr": "127.0.0.1:6379",
  	   "db_indexs": [0, 1, 2]
 	 }
@@ -31,17 +35,20 @@ func (cfg redisBootConfig) GetConfig(key string) (bootconfig.RawConfigData, conf
 func TestMain(m *testing.M) {
 	// set config first
 	bootconfig.RegisterConfigGetter(redisBootConfig{})
-	// init resource manager
-	c := resources.GetResourceContainer()
-	c.Init()
-	defer c.Close()
+
 	os.Exit(m.Run())
 }
 
 func TestGetClient(t *testing.T) {
+	// init resource manager
+	c := resources.GetResourceContainer()
+	c.Init()
+	defer c.Close()
+
 	obj := resources.GetResourceContainer().GetResource(GetBootConfigKey())
 	assert.NotNil(t, obj)
 
 	cli := GetClient("test", 0)
 	assert.NotNil(t, cli)
 }
+

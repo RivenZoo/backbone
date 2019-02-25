@@ -1,17 +1,15 @@
 package redis_clients
 
 import (
-	"fmt"
 	"github.com/RivenZoo/backbone/bootconfig"
-	"github.com/RivenZoo/backbone/objects_container"
 	"github.com/RivenZoo/backbone/redis_connector"
 	"github.com/RivenZoo/backbone/resource_manager"
 	"github.com/RivenZoo/backbone/resources"
 	"gopkg.in/redis.v5"
-	"reflect"
 )
 
-// redis client json config format
+//
+// ** Redis client json config format, more options see redis_connector/redis_connector.go#RedisOptions **
 //{
 //	"redis_config": {
 //		"test": {
@@ -40,9 +38,7 @@ func init() {
 		if err != nil {
 			return nil, err
 		}
-		injectRedisDBClients(rc)
 		return rc, nil
-
 	}, &redisConnector)
 	resources.GetResourceContainer().RegisterCreator(key, creator)
 }
@@ -52,20 +48,4 @@ func GetClient(name string, db int) *redis.Client {
 		Name:    name,
 		DBIndex: db,
 	})
-}
-
-func GetInjectInfo(name string, db int) (injectName string, tp reflect.Type) {
-	injectName = fmt.Sprintf("res.redis_clients.%s.%d", name, db)
-	tp = reflect.TypeOf((*redis.Client)(nil))
-	return
-}
-
-func injectRedisDBClients(rc *redis_connector.RedisConnector) {
-	c := objects_container.GetObjectContainer()
-	redisDBClients := rc.AllRedisDBClients()
-	for i := range redisDBClients {
-		cli := &redisDBClients[i]
-		injectName, _ := GetInjectInfo(cli.Name, cli.DBIndex)
-		c.ProvideByName(injectName, cli.Client)
-	}
 }
