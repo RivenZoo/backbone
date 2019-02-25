@@ -9,6 +9,7 @@ import (
 	"github.com/RivenZoo/backbone/logger"
 	"github.com/RivenZoo/backbone/objects_container"
 	"github.com/RivenZoo/backbone/services"
+	"github.com/RivenZoo/backbone/resources"
 	"github.com/RivenZoo/backbone/services/httpserver"
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +30,14 @@ func main() {
 
 	// second: init all resources and services
 	logger.Log("init resources and services")
+
+	resources.Init()
+	defer resources.Close()
+
 	objects_container.Init()
+	defer objects_container.Close()
+
+	services.Init()
 
 	registerSignal()
 
@@ -41,7 +49,7 @@ func main() {
 
 	// last: run service
 	logger.Log("run services")
-	services.GetServiceContainer().RunServices()
+	services.RunServices()
 
 	logger.Log("exit")
 }

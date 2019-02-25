@@ -3,7 +3,7 @@
 package main
 
 import (
-	"github.com/RivenZoo/backbone/objects_container"
+	"github.com/RivenZoo/backbone/services"
 	"github.com/RivenZoo/backbone/signalutils"
 
 	"os"
@@ -12,6 +12,6 @@ import (
 
 func registerSignal() {
 	signalutils.HandleSignals(func(sig os.Signal) {
-		objects_container.Close()
+		services.Close()
 	}, syscall.SIGINT, syscall.SIGTERM)
 }
