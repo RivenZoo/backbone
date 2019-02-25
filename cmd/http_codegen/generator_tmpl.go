@@ -80,6 +80,7 @@ var apiHandlerDefineTmpl = template.Must(template.New("apiHandlerDefineTmpl").
 	<? if .ResponseEncoder?>ResponseEncoder: <?.ResponseEncoder?>, <? end ?>
 	<? if .ErrorEncoder?>ErrorEncoder: <?.ErrorEncoder?>, <? end ?>
 	<? if .PostProcessFunc?>PostProcessFunc: <?.PostProcessFunc?>, <? end ?>
+	<? if .ParseBody?>ParseBody: <?.ParseBody?>, <? end ?>
 })`))
 
 type apiHandlerDefineTmplObj struct {
@@ -92,6 +93,7 @@ type apiHandlerDefineTmplObj struct {
 	ResponseEncoder string
 	ErrorEncoder    string
 	PostProcessFunc string
+	ParseBody       string
 }
 
 func genAPIHandlerByTmpl(info apiHandlerDefineInfo, buf *bytes.Buffer, option commonHttpAPIHandlerOption) error {
@@ -104,6 +106,7 @@ func genAPIHandlerByTmpl(info apiHandlerDefineInfo, buf *bytes.Buffer, option co
 		ResponseEncoder: option.ResponseEncoder,
 		ErrorEncoder:    option.ErrorEncoder,
 		PostProcessFunc: option.PostProcessFunc,
+		ParseBody:       option.ParseBody,
 	})
 }
 

@@ -29,6 +29,7 @@ type commonHttpAPIHandlerOption struct {
 	ResponseEncoder string
 	ErrorEncoder    string
 	PostProcessFunc string
+	ParseBody       string
 }
 
 type commonInitRouterStmtOption struct {
