@@ -3,7 +3,7 @@ module github.com/RivenZoo/backbone
 require (
 	github.com/BurntSushi/toml v0.3.1
 	github.com/RivenZoo/dsncfg v1.1.1
-	github.com/RivenZoo/injectgo v0.4.1
+	github.com/RivenZoo/injectgo v0.4.2
 	github.com/RivenZoo/sqlagent v1.4.1
 	github.com/gin-contrib/sse v0.0.0-20190125020943-a7658810eb74 // indirect
 	github.com/gin-gonic/gin v1.3.0
