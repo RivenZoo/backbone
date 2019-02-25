@@ -9,6 +9,8 @@ type NewRequestFunc func() interface{}
 
 type RequestBodyDecodeFunc func(data []byte, v interface{}) error
 
+type ParseBodyFunc func(c *gin.Context, v interface{}) error
+
 type ResponseBodyEncodeFunc func(v interface{}) ([]byte, error)
 
 type ErrorResponseEncodeFunc func(c *gin.Context, err error) ([]byte, error)
@@ -22,6 +24,8 @@ type RequestProcessor struct {
 	ProcessFunc RequestProcessFunc
 
 	// optional
+	// if ParseBody is set, use it to parse request body from gin.Context and ignore RequestDecoder and BodyContextKey.
+	ParseBody ParseBodyFunc
 	// if BodyContextKey is set, get request body from gin.Context.
 	BodyContextKey string
 	// RequestDecoder if not set, use default json RequestBodyDecodeFunc
@@ -48,15 +52,24 @@ func NewRequestHandleFunc(p *RequestProcessor) func(c *gin.Context) {
 }
 
 func handleRequest(c *gin.Context, p *RequestProcessor) (resp interface{}, err error) {
-	data, err := getRequestBody(c, p.BodyContextKey)
-	if err != nil {
-		logger.Logf("[ERROR] getRequestBody error %v", err)
-		return nil, err
-	}
-	req, err := decodeRequest(data, p)
-	if err != nil {
-		logger.Logf("[ERROR] decodeRequest error %v", err)
-		return nil, err
+	req := p.NewReqFunc()
+	if p.ParseBody != nil {
+		err = p.ParseBody(c, req)
+		if err != nil {
+			logger.Errorf("parse body error %v", err)
+			return nil, err
+		}
+	} else {
+		data, err := getRequestBody(c, p.BodyContextKey)
+		if err != nil {
+			logger.Errorf("getRequestBody error %v", err)
+			return nil, err
+		}
+		err = decodeRequest(data, req, p.RequestDecoder)
+		if err != nil {
+			logger.Errorf("decodeRequest error %v", err)
+			return nil, err
+		}
 	}
 	resp, err = p.ProcessFunc(c, req)
 	if err != nil {
@@ -71,14 +84,12 @@ func handlePostRequest(c *gin.Context, resp interface{}, err error, postHandler 
 	}
 }
 
-func decodeRequest(data []byte, p *RequestProcessor) (req interface{}, err error) {
-	req = p.NewReqFunc()
-	decoder := p.RequestDecoder
+func decodeRequest(data []byte, req interface{}, decoder RequestBodyDecodeFunc) (err error) {
 	if decoder == nil {
 		decoder = defaultRequestBodyDecodeFunc
 	}
 	err = decoder(data, req)
-	return req, err
+	return
 }
 
 func getRequestBody(c *gin.Context, bodyKey string) ([]byte, error) {
