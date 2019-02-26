@@ -115,7 +115,7 @@ func handleSourceFile(filePath string) {
 
 	g.GenHttpAPIHandler()
 	debugOutput("api_handler", g.handlerOutput)
-	outputCode(apiHandlerFileName(filePath), g.OutputAPIHandler)
+	outputCode(g.apiHandlerFileName(filePath), g.OutputAPIHandler)
 
 	g.GenInitHttpAPIRouter()
 	debugOutput("init_router", g.routerInitOutput)

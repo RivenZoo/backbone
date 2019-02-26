@@ -5,6 +5,7 @@ import (
 	"github.com/RivenZoo/backbone/configutils"
 	"github.com/RivenZoo/backbone/logger"
 	"os"
+	"path/filepath"
 )
 
 var config *Config
@@ -45,5 +46,17 @@ func parseFlagConfig() {
 		}
 	} else {
 		genOption = &httpAPIGeneratorOption{}
+	}
+
+	// set init router and api handler file dir
+	inputDir := config.inputDir
+	if inputDir == "" {
+		inputDir = filepath.Dir(config.inputFile)
+	}
+	if genOption.InitRouterFileDir == "" {
+		genOption.InitRouterFileDir = inputDir
+	}
+	if genOption.APIHandlerFileDir == "" {
+		genOption.APIHandlerFileDir = inputDir
 	}
 }
