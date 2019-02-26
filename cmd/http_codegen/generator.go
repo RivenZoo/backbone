@@ -270,12 +270,20 @@ func (g *HttpAPIGenerator) OutputAPIHandler(w io.Writer) error {
 	return merger.WriteTo(w)
 }
 
+func (g *HttpAPIGenerator) getAPIHandlerFilePackage() string {
+	if g.option.APIHandlerFileDir != "" && g.option.APIHandlerFileDir != "." {
+		fpath := filepath.Clean(g.option.APIHandlerFileDir)
+		return filepath.Base(fpath)
+	}
+	return g.source.node.Name.Name
+}
+
 func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandlerDefineInfo,
 	unImported []importInfo) {
 	if len(g.handlerFileContent) <= 0 {
 		// empty file, add package declare
 		g.handlerOutput = append(g.handlerOutput, generatedOutput{
-			buffer:    bytes.NewBufferString(fmt.Sprintf("package %s\n", g.source.node.Name.Name)),
+			buffer:    bytes.NewBufferString(fmt.Sprintf("package %s\n", g.getAPIHandlerFilePackage())),
 			afterLine: 1,
 		})
 	}
@@ -394,11 +402,19 @@ func (g *HttpAPIGenerator) addInitRouterImports() {
 	g.option.InitRouterImports = mergeImports(g.option.InitRouterImports, requiredImports)
 }
 
+func (g *HttpAPIGenerator) getInitRouterFilePackage() string {
+	if g.option.InitRouterFileDir != "" && g.option.InitRouterFileDir != "." {
+		fpath := filepath.Clean(g.option.InitRouterFileDir)
+		return filepath.Base(fpath)
+	}
+	return g.source.node.Name.Name
+}
+
 func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmtInfo, unImported []importInfo) {
 	if len(g.routerInitFileContent) <= 0 {
 		// empty file, add package declare
 		g.routerInitOutput = append(g.routerInitOutput, generatedOutput{
-			buffer:    bytes.NewBufferString(fmt.Sprintf("package %s\n", g.source.node.Name.Name)),
+			buffer:    bytes.NewBufferString(fmt.Sprintf("package %s\n", g.getInitRouterFilePackage())),
 			afterLine: 1,
 		})
 	}
