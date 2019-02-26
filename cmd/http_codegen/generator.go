@@ -204,7 +204,7 @@ type apiHandlerDefineInfo struct {
 }
 
 func httpAPIHandlerVarName(reqType string) string {
-	return fmt.Sprintf("%sHandler", reqType)
+	return fmt.Sprintf("gin%sHandler", strings.Title(reqType))
 }
 
 func (g *HttpAPIGenerator) parseAPIHandlerFile() error {
@@ -349,7 +349,7 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 func (g *HttpAPIGenerator) httpRouterInitFilename() string {
 	filename := fmt.Sprintf("%s_urls.go", g.packageName())
 	if g.isImportAPI {
-		filepath.Join(g.option.InitAPIPkgDir, filename)
+		return filepath.Join(g.option.InitAPIPkgDir, filename)
 	}
 	return filepath.Join(filepath.Dir(g.srcFile), filename)
 }
@@ -432,11 +432,7 @@ func (g *HttpAPIGenerator) addInitRouterImports() {
 	requiredImports := []importInfo{
 		{"github.com/gin-gonic/gin", ""},
 	}
-	if g.isImportAPI {
-		requiredImports = append(requiredImports, importInfo{
-			PkgPath: g.option.APIPkgImportPath,
-		})
-	}
+
 	g.option.InitRouterImports = mergeImports(g.option.InitRouterImports, requiredImports)
 }
 
