@@ -37,8 +37,8 @@ type commonInitRouterStmtOption struct {
 }
 
 type httpAPIGeneratorOption struct {
-	InitRouterFileDir     string
-	APIHandlerFileDir     string
+	InitAPIPkgDir         string
+	APIPkgImportPath      string
 	ApiDefineFileImports  []importInfo
 	ApiHandlerFileImports []importInfo
 	InitRouterImports     []importInfo
@@ -48,11 +48,12 @@ type httpAPIGeneratorOption struct {
 }
 
 type HttpAPIGenerator struct {
-	option     httpAPIGeneratorOption
-	srcFile    string
-	srcContent []byte
-	source     *SourceAst
-	markers    []*HttpAPIMarker
+	option      httpAPIGeneratorOption
+	isImportAPI bool
+	srcFile     string
+	srcContent  []byte
+	source      *SourceAst
+	markers     []*HttpAPIMarker
 
 	handlerDefineFile  string
 	handlerSource      *SourceAst
@@ -72,6 +73,9 @@ func newHttpAPIGenerator(option httpAPIGeneratorOption) *HttpAPIGenerator {
 	ret := &HttpAPIGenerator{
 		option:  option,
 		markers: []*HttpAPIMarker{},
+	}
+	if ret.option.InitAPIPkgDir != "" {
+		ret.isImportAPI = true
 	}
 	return ret
 }
@@ -108,6 +112,13 @@ func (g *HttpAPIGenerator) ParseHttpAPIMarkers() error {
 		return err
 	}
 	g.markers = m
+	if g.isImportAPI {
+		for i := range g.markers {
+			// make it importable
+			g.markers[i].RequestType = strings.Title(g.markers[i].RequestType)
+			g.markers[i].ResponseType = strings.Title(g.markers[i].ResponseType)
+		}
+	}
 	return nil
 }
 
@@ -119,11 +130,15 @@ func (g *HttpAPIGenerator) addAPIDeclareImports() {
 	g.option.ApiDefineFileImports = mergeImports(g.option.ApiDefineFileImports, requiredImports)
 }
 
+func (g *HttpAPIGenerator) APIImportPkgName() string {
+	return filepath.Base(filepath.Clean(g.option.APIPkgImportPath))
+}
+
 func (g *HttpAPIGenerator) GenHttpAPIDeclare() {
 	g.addAPIDeclareImports()
 	unImported := filterUnImportedPackage(g.source.node.Imports, g.option.ApiDefineFileImports)
 	declaredFuncs := filterDelcaredFuncNames(g.source.node.Decls)
-	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(g.markers, declaredFuncs)
+	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(g.markers, declaredFuncs, g.httpAPIMethodName)
 	g.genAPIDeclareOutput(unDeclaredMarkers, unImported)
 }
 
@@ -148,7 +163,10 @@ func genImports(pkgs []importInfo) *bytes.Buffer {
 	return buf
 }
 
-func httpAPIMethodName(requestTypeName string) string {
+func (g *HttpAPIGenerator) httpAPIMethodName(requestTypeName string) string {
+	if g.isImportAPI {
+		return fmt.Sprintf("Handle%s", strings.Title(requestTypeName))
+	}
 	return fmt.Sprintf("handle%s", strings.Title(requestTypeName))
 }
 
@@ -165,7 +183,7 @@ func (g *HttpAPIGenerator) genAPIDeclareOutput(unDeclaredMarkers []*HttpAPIMarke
 
 	apiTypeDeclare := func(m *HttpAPIMarker) *bytes.Buffer {
 		buf := bytes.NewBuffer(make([]byte, 0))
-		genHttpAPIDefinitionByTmpl(m, buf, g.option.CommonAPIDefinition)
+		genHttpAPIDefinitionByTmpl(m, buf, g.option.CommonAPIDefinition, g.httpAPIMethodName)
 		return buf
 	}
 	for _, m := range unDeclaredMarkers {
@@ -182,6 +200,7 @@ type apiHandlerDefineInfo struct {
 	afterLine     int
 	varName       string
 	apiMethodName string
+	requestType   string
 }
 
 func httpAPIHandlerVarName(reqType string) string {
@@ -217,20 +236,21 @@ func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 				marker:        m,
 				afterLine:     i + 3, // after package,import
 				varName:       httpAPIHandlerVarName(m.RequestType),
-				apiMethodName: httpAPIMethodName(m.RequestType),
+				apiMethodName: g.httpAPIMethodName(m.RequestType),
+				requestType:   m.RequestType,
 			})
 		}
 		return ret
 	}
 
-	return filterUndeclaredHandlers(g.handlerSource, g.markers)
+	return filterUndeclaredHandlers(g.handlerSource, g.markers, g.httpAPIMethodName)
 }
 
 func (g *HttpAPIGenerator) apiHandlerFileName(srcFilePath string) string {
 	filename := filepath.Base(srcFilePath)
 	filename = fmt.Sprintf("%s_handlers.go", strings.TrimSuffix(filename, ".go"))
-	if g.option.APIHandlerFileDir != "" {
-		return filepath.Join(g.option.APIHandlerFileDir, filename)
+	if g.isImportAPI {
+		return filepath.Join(g.option.InitAPIPkgDir, filename)
 	}
 	return filepath.Join(filepath.Dir(srcFilePath), filename)
 }
@@ -239,6 +259,11 @@ func (g *HttpAPIGenerator) addAPIHandlerImports() {
 	requiredImports := []importInfo{
 		{"github.com/RivenZoo/backbone/http/handler", ""},
 		{"github.com/gin-gonic/gin", ""},
+	}
+	if g.isImportAPI {
+		requiredImports = append(requiredImports, importInfo{
+			PkgPath: g.option.APIPkgImportPath,
+		})
 	}
 
 	g.option.ApiHandlerFileImports = mergeImports(g.option.ApiHandlerFileImports, requiredImports)
@@ -271,8 +296,8 @@ func (g *HttpAPIGenerator) OutputAPIHandler(w io.Writer) error {
 }
 
 func (g *HttpAPIGenerator) getAPIHandlerFilePackage() string {
-	if g.option.APIHandlerFileDir != "" && g.option.APIHandlerFileDir != "." {
-		fpath := filepath.Clean(g.option.APIHandlerFileDir)
+	if g.isImportAPI {
+		fpath := filepath.Clean(g.option.InitAPIPkgDir)
 		return filepath.Base(fpath)
 	}
 	return g.source.node.Name.Name
@@ -303,7 +328,15 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 		genAPIHandlerByTmpl(info, buf, g.option.CommonHttpAPIHandler)
 		return buf
 	}
+	pkgName := ""
+	if g.isImportAPI {
+		pkgName = g.APIImportPkgName()
+	}
 	for _, info := range handlerDefineInfos {
+		if g.isImportAPI {
+			info.requestType = pkgName + "." + info.requestType
+			info.apiMethodName = pkgName + "." + info.apiMethodName
+		}
 		buf := apiHandlerDefine(info)
 		output := generatedOutput{
 			afterLine: info.afterLine,
@@ -315,8 +348,8 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 
 func (g *HttpAPIGenerator) httpRouterInitFilename() string {
 	filename := fmt.Sprintf("%s_urls.go", g.packageName())
-	if g.option.InitRouterFileDir != "" {
-		filepath.Join(g.option.InitRouterFileDir, filename)
+	if g.isImportAPI {
+		filepath.Join(g.option.InitAPIPkgDir, filename)
 	}
 	return filepath.Join(filepath.Dir(g.srcFile), filename)
 }
@@ -399,12 +432,17 @@ func (g *HttpAPIGenerator) addInitRouterImports() {
 	requiredImports := []importInfo{
 		{"github.com/gin-gonic/gin", ""},
 	}
+	if g.isImportAPI {
+		requiredImports = append(requiredImports, importInfo{
+			PkgPath: g.option.APIPkgImportPath,
+		})
+	}
 	g.option.InitRouterImports = mergeImports(g.option.InitRouterImports, requiredImports)
 }
 
 func (g *HttpAPIGenerator) getInitRouterFilePackage() string {
-	if g.option.InitRouterFileDir != "" && g.option.InitRouterFileDir != "." {
-		fpath := filepath.Clean(g.option.InitRouterFileDir)
+	if g.isImportAPI {
+		fpath := filepath.Clean(g.option.InitAPIPkgDir)
 		return filepath.Base(fpath)
 	}
 	return g.source.node.Name.Name

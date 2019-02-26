@@ -30,7 +30,9 @@ package controller
 
 	markers, err := ParseHttpAPIMarkers(sa)
 
-	genHttpAPIHandleFunc(sa, markers)
+	genHttpAPIHandleFunc(sa, markers, func(s string) string {
+		return s
+	})
 
 	inspectNode(t, sa.node)
 	sourceBuf := bytes.NewBuffer(make([]byte, 0))
@@ -78,7 +80,9 @@ package controller
 
 	markers, err := ParseHttpAPIMarkers(sa)
 
-	genHttpAPIHandleFunc(sa, markers)
+	genHttpAPIHandleFunc(sa, markers, func(s string) string {
+		return s
+	})
 	genHttpAPITypeDecl(sa, markers)
 
 	sourceBuf := bytes.NewBuffer(make([]byte, 0))

@@ -18,7 +18,8 @@ func filterDelcaredFuncNames(decls []ast.Decl) []string {
 	return declaredFuncs
 }
 
-func filterFuncUndeclaredHttpAPIMarkers(markers []*HttpAPIMarker, declaredFuncs []string) []*HttpAPIMarker {
+func filterFuncUndeclaredHttpAPIMarkers(markers []*HttpAPIMarker, declaredFuncs []string,
+	httpAPIMethodName func(string) string) []*HttpAPIMarker {
 	unDeclaredMarkers := make([]*HttpAPIMarker, 0)
 	findUndeclared := func(fn string) bool {
 		for _, declared := range declaredFuncs {
@@ -57,7 +58,7 @@ func filterUnImportedPackage(imports []*ast.ImportSpec, pkgs []importInfo) (unIm
 	return
 }
 
-func filterUndeclaredHandlers(sa *SourceAst, markers []*HttpAPIMarker) []apiHandlerDefineInfo {
+func filterUndeclaredHandlers(sa *SourceAst, markers []*HttpAPIMarker, httpAPIMethodName func(string) string) []apiHandlerDefineInfo {
 	lastLine := 0
 	globalVars := []string{}
 	for _, decl := range sa.node.Decls {
@@ -95,13 +96,15 @@ func filterUndeclaredHandlers(sa *SourceAst, markers []*HttpAPIMarker) []apiHand
 				varName:       vn,
 				afterLine:     lastLine + i,
 				apiMethodName: httpAPIMethodName(m.RequestType),
+				requestType:   m.RequestType,
 			})
 		}
 	}
 	return ret
 }
 
-func filterUnInitRouters(sa *SourceAst, initFuncName, registerFuncName string, markers []*HttpAPIMarker) []initRouterStmtInfo {
+func filterUnInitRouters(sa *SourceAst, initFuncName, registerFuncName string,
+	markers []*HttpAPIMarker) []initRouterStmtInfo {
 	initDecl := filterGlobalFunc(sa.node.Decls, initFuncName)
 	if initDecl == nil {
 		// no init func
@@ -151,7 +154,7 @@ func filterUnInitRouters(sa *SourceAst, initFuncName, registerFuncName string, m
 			ret = append(ret, initRouterStmtInfo{
 				afterLine:       sa.fSet.Position(initDecl.End()).Line - 1,
 				marker:          m,
-				handlerFuncName: httpAPIMethodName(m.RequestType),
+				handlerFuncName: httpAPIHandlerVarName(m.RequestType),
 			})
 		}
 	}

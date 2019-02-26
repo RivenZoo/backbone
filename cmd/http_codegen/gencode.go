@@ -5,7 +5,7 @@ import (
 	"go/token"
 )
 
-func genHttpAPIFuncDeclare(targetAst *SourceAst, unDeclaredMarkers []*HttpAPIMarker) {
+func genHttpAPIFuncDeclare(targetAst *SourceAst, unDeclaredMarkers []*HttpAPIMarker, httpAPIMethodName func(string) string) {
 	for _, m := range unDeclaredMarkers {
 		methodName := httpAPIMethodName(m.RequestType)
 		params := []paramOption{
@@ -39,10 +39,10 @@ func genHttpAPIFuncDeclare(targetAst *SourceAst, unDeclaredMarkers []*HttpAPIMar
 }
 
 // genHttpAPIHandleFunc generate api declare if api not exists.
-func genHttpAPIHandleFunc(targetAst *SourceAst, markers []*HttpAPIMarker) {
+func genHttpAPIHandleFunc(targetAst *SourceAst, markers []*HttpAPIMarker, httpAPIMethodName func(string) string) {
 	declaredFuncs := filterDelcaredFuncNames(targetAst.node.Decls)
-	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(markers, declaredFuncs)
-	genHttpAPIFuncDeclare(targetAst, unDeclaredMarkers)
+	unDeclaredMarkers := filterFuncUndeclaredHttpAPIMarkers(markers, declaredFuncs, httpAPIMethodName)
+	genHttpAPIFuncDeclare(targetAst, unDeclaredMarkers, httpAPIMethodName)
 }
 
 func filterDeclaredTypeNames(decls []ast.Decl) []string {
@@ -141,5 +141,3 @@ func copyCommentGroup(cg *ast.CommentGroup) *ast.CommentGroup {
 	}
 	return ret
 }
-
-

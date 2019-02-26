@@ -13,6 +13,8 @@ func TestGenHttpAPIDefinitionByTmpl(t *testing.T) {
 		},
 		RequestType:  "testReq",
 		ResponseType: "testResp",
-	}, buf, commonHttpAPIDefinitionOption{})
+	}, buf, commonHttpAPIDefinitionOption{}, func(s string) string {
+		return s
+	})
 	t.Log(buf.String())
 }

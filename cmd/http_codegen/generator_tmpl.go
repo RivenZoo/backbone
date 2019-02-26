@@ -33,7 +33,8 @@ type apiDefinitionTmplObj struct {
 	CommonFuncStmt       string
 }
 
-func genHttpAPIDefinitionByTmpl(m *HttpAPIMarker, buf *bytes.Buffer, option commonHttpAPIDefinitionOption) error {
+func genHttpAPIDefinitionByTmpl(m *HttpAPIMarker, buf *bytes.Buffer,
+	option commonHttpAPIDefinitionOption, httpAPIMethodName func(string) string) error {
 	methodName := httpAPIMethodName(m.RequestType)
 	def := apiDefinitionTmplObj{
 		RequestType:          m.RequestType,
@@ -99,7 +100,7 @@ type apiHandlerDefineTmplObj struct {
 func genAPIHandlerByTmpl(info apiHandlerDefineInfo, buf *bytes.Buffer, option commonHttpAPIHandlerOption) error {
 	return apiHandlerDefineTmpl.Execute(buf, apiHandlerDefineTmplObj{
 		VarName:         info.varName,
-		RequestType:     info.marker.RequestType,
+		RequestType:     info.requestType,
 		MethodName:      info.apiMethodName,
 		BodyContextKey:  option.BodyContextKey,
 		RequestDecoder:  option.RequestDecoder,

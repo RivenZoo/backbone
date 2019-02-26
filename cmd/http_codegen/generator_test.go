@@ -79,6 +79,7 @@ import (
 	assert.Nil(t, err)
 
 	assert.True(t, len(g.markers) == 2)
+	t.Log(g.markers[0], g.markers[1])
 
 	g.GenHttpAPIHandler()
 	codeBuf := bytes.NewBuffer(make([]byte, 0))

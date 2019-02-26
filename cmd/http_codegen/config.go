@@ -5,7 +5,6 @@ import (
 	"github.com/RivenZoo/backbone/configutils"
 	"github.com/RivenZoo/backbone/logger"
 	"os"
-	"path/filepath"
 )
 
 var config *Config
@@ -48,15 +47,9 @@ func parseFlagConfig() {
 		genOption = &httpAPIGeneratorOption{}
 	}
 
-	// set init router and api handler file dir
-	inputDir := config.inputDir
-	if inputDir == "" {
-		inputDir = filepath.Dir(config.inputFile)
-	}
-	if genOption.InitRouterFileDir == "" {
-		genOption.InitRouterFileDir = inputDir
-	}
-	if genOption.APIHandlerFileDir == "" {
-		genOption.APIHandlerFileDir = inputDir
+	// set init router and api handler pkg dir
+	if genOption.InitAPIPkgDir != "" && genOption.APIPkgImportPath == ""{
+		logger.Errorf("api package import path not set")
+		os.Exit(-1)
 	}
 }
