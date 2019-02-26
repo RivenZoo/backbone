@@ -62,7 +62,7 @@ func sourceModifiedSinceLastGen(filePath string, g *HttpAPIGenerator) bool {
 	}
 	logger.Debugf("file %s mod time %s", filePath, info.ModTime())
 
-	handlerFile := apiHandlerFileName(filePath)
+	handlerFile := g.apiHandlerFileName(filePath)
 	handlerFileInfo, err := os.Lstat(handlerFile)
 	if err != nil {
 		// ignore error, treat as modified
@@ -115,7 +115,7 @@ func handleSourceFile(filePath string) {
 
 	g.GenHttpAPIHandler()
 	debugOutput("api_handler", g.handlerOutput)
-	outputCode(apiHandlerFileName(filePath), g.OutputAPIHandler)
+	outputCode(g.apiHandlerFileName(filePath), g.OutputAPIHandler)
 
 	g.GenInitHttpAPIRouter()
 	debugOutput("init_router", g.routerInitOutput)

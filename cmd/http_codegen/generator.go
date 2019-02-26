@@ -37,6 +37,8 @@ type commonInitRouterStmtOption struct {
 }
 
 type httpAPIGeneratorOption struct {
+	InitRouterFileDir     string
+	APIHandlerFileDir     string
 	ApiDefineFileImports  []importInfo
 	ApiHandlerFileImports []importInfo
 	InitRouterImports     []importInfo
@@ -224,8 +226,13 @@ func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 	return filterUndeclaredHandlers(g.handlerSource, g.markers)
 }
 
-func apiHandlerFileName(srcFilename string) string {
-	return fmt.Sprintf("%s_handlers.go", strings.TrimSuffix(srcFilename, ".go"))
+func (g *HttpAPIGenerator) apiHandlerFileName(srcFilePath string) string {
+	filename := filepath.Base(srcFilePath)
+	filename = fmt.Sprintf("%s_handlers.go", strings.TrimSuffix(filename, ".go"))
+	if g.option.APIHandlerFileDir != "" {
+		return filepath.Join(g.option.APIHandlerFileDir, filename)
+	}
+	return filepath.Join(filepath.Dir(srcFilePath), filename)
 }
 
 func (g *HttpAPIGenerator) addAPIHandlerImports() {
@@ -238,7 +245,7 @@ func (g *HttpAPIGenerator) addAPIHandlerImports() {
 }
 
 func (g *HttpAPIGenerator) GenHttpAPIHandler() {
-	g.handlerDefineFile = apiHandlerFileName(g.source.filePath)
+	g.handlerDefineFile = g.apiHandlerFileName(g.source.filePath)
 	if err := g.parseAPIHandlerFile(); err != nil {
 		return
 	}
@@ -300,6 +307,9 @@ func (g *HttpAPIGenerator) genHttpAPIHandlerOutput(handlerDefineInfos []apiHandl
 
 func (g *HttpAPIGenerator) httpRouterInitFilename() string {
 	filename := fmt.Sprintf("%s_urls.go", g.packageName())
+	if g.option.InitRouterFileDir != "" {
+		filepath.Join(g.option.InitRouterFileDir, filename)
+	}
 	return filepath.Join(filepath.Dir(g.srcFile), filename)
 }
 
