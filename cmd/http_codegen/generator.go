@@ -474,11 +474,11 @@ func (g *HttpAPIGenerator) genInitHttpAPIRouterOutput(stmtInfos []initRouterStmt
 		}
 	}
 
-	initRouterVarName := "engine"
+	initRouterVarName := "r"
 	if genInitFunc {
 		// begin new init func define
 		buf := bytes.NewBuffer(make([]byte, 0))
-		closeFunc := genFuncDefine(initFuncName, []string{fmt.Sprintf("%s *gin.Engine", initRouterVarName)},
+		closeFunc := genFuncDefine(initFuncName, []string{fmt.Sprintf("%s gin.IRouter", initRouterVarName)},
 			initRouterVarName, buf)
 		end := 3 // after package, import
 		if len(g.routerInitOutput) > 0 {
