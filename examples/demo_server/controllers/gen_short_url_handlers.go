@@ -3,7 +3,7 @@ package controllers
 import "github.com/RivenZoo/backbone/http/handler"
 import "github.com/gin-gonic/gin"
 
-var abbreviateURLReqHandler = handler.NewRequestHandleFunc(&handler.RequestProcessor{
+var ginAbbreviateURLReqHandler = handler.NewRequestHandleFunc(&handler.RequestProcessor{
 	NewReqFunc: func() interface{} {
 		return &abbreviateURLReq{}
 	},

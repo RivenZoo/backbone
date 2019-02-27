@@ -4,6 +4,6 @@ import "github.com/gin-gonic/gin"
 
 func InitRouters(engine *gin.Engine) {
 
-	engine.POST("/url/abbr", abbreviateURLReqHandler)
+	engine.POST("/url/abbr", ginAbbreviateURLReqHandler)
 
 }
