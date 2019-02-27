@@ -33,23 +33,26 @@ func main() {
 }
 
 func listHttpAPIFiles(inputDir string) []string {
-	files := []string{}
-	filepath.Walk(inputDir, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			logger.Errorf("read path %s error %v", path, err)
-			return filepath.SkipDir
-		}
+	fileInfos, err := ioutil.ReadDir(inputDir)
+	if err != nil {
+		logger.Errorf("read path %s error %v", inputDir, err)
+		return nil
+	}
+
+	files := make([]string, 0, len(fileInfos))
+	for _, info := range fileInfos {
 		if info.IsDir() {
-			return nil
+			continue
 		}
+		path := filepath.Join(inputDir, info.Name())
 		if strings.HasSuffix(path, "_handlers.go") ||
 			strings.HasSuffix(path, "_urls.go") ||
 			strings.HasSuffix(path, "_test.go") {
-			return nil
+			continue
 		}
 		files = append(files, path)
-		return nil
-	})
+	}
+
 	return files
 }
 
