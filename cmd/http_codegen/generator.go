@@ -248,7 +248,7 @@ func (g *HttpAPIGenerator) filterUndeclaredAPIHandler() []apiHandlerDefineInfo {
 
 func (g *HttpAPIGenerator) apiHandlerFileName(srcFilePath string) string {
 	filename := filepath.Base(srcFilePath)
-	filename = fmt.Sprintf("%s_handlers.go", strings.TrimSuffix(filename, ".go"))
+	filename = fmt.Sprintf("gen_%s_handlers.go", strings.TrimSuffix(filename, ".go"))
 	if g.isImportAPI {
 		return filepath.Join(g.option.InitAPIPkgDir, filename)
 	}
