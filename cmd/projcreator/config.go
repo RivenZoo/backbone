@@ -69,9 +69,9 @@ func parseFlagConfig() {
 	addFlagToTmplArgs()
 }
 
-const tmplArgsKeyPrefix = "-tmpl_"
+const tmplArgsKeyPrefix = "tmpl_"
 
-// parseTmplArgs parse command line args -tmpl_{key}={value}, set {key}={value} to TmplArgs
+// parseTmplArgs parse command line args tmpl_{key}={value}, set {key}={value} to TmplArgs
 func parseTmplArgs() {
 	n := flag.NArg()
 	for i := 0; i < n; i++ {

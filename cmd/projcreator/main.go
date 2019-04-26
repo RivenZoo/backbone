@@ -53,6 +53,12 @@ func main() {
 	writeConfig(dst)
 }
 
+var additionalTmplFunc = template.FuncMap{
+	"ToUpper": strings.ToUpper,
+	"Title":   strings.Title,
+	"ToLower": strings.ToLower,
+}
+
 func copyDirRecursively(srcDir, outputDir string) error {
 	return filepath.Walk(srcDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -100,7 +106,7 @@ func replacePathByTmplVar(path string) (string, error) {
 		// no template variable
 		return path, nil
 	}
-	t, err := template.New("dirTmpl").Parse(path)
+	t, err := template.New("dirTmpl").Funcs(additionalTmplFunc).Parse(path)
 	if err != nil {
 		return path, err
 	}
@@ -110,10 +116,12 @@ func replacePathByTmplVar(path string) (string, error) {
 }
 
 func replaceFileByTmplVar(filePath string) (io.Reader, error) {
-	if strings.ToLower(filepath.Ext(filePath)) != ".tmpl" {
-		return os.Open(filePath)
+	data, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		return nil, err
 	}
-	t, err := template.New("fileTmpl").Parse(filePath)
+	// ParseFiles 模板名要和文件名关联，否则execute会出错，用Parse替代
+	t, err := template.New("fileTmpl").Funcs(additionalTmplFunc).Parse(string(data))
 	if err != nil {
 		return nil, err
 	}
@@ -126,8 +134,10 @@ func copyDirPath(srcDir, outputDir, dirPath string) error {
 	outputPath := replacePathPrefix(srcDir, outputDir, dirPath)
 	d, err := replacePathByTmplVar(outputPath)
 	if err != nil {
+		logger.Errorf("replace path %s error %v", outputPath, err)
 		return err
 	}
+	logger.Debugf("copy dir %s from %s to %s, mkdir %s", dirPath, srcDir, outputDir, d)
 	return os.MkdirAll(d, 0755)
 }
 
@@ -142,13 +152,23 @@ func detectFilePerm(filePath string) os.FileMode {
 
 func copyFile(srcDir, outputDir, filePath string) error {
 	outputFile := replacePathPrefix(srcDir, outputDir, filePath)
+	outputFile, err := replacePathByTmplVar(outputFile)
+	if err != nil {
+		logger.Errorf("replace path %s args %v error %v", outputFile, config.TmplArgs, err)
+		return err
+	}
 	r, err := replaceFileByTmplVar(filePath)
 	if err != nil {
+		logger.Errorf("replace file %s args %v error %v", filePath, config.TmplArgs, err)
 		return err
 	}
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
 	}
+	if filepath.Ext(outputFile) == ".tmpl" {
+		outputFile = strings.TrimSuffix(outputFile, ".tmpl")
+	}
+	logger.Debugf("copy file %s from %s to %s", filePath, srcDir, outputFile)
 	return ioutil.WriteFile(outputFile, data, detectFilePerm(outputFile))
 }
