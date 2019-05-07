@@ -54,9 +54,11 @@ func main() {
 }
 
 var additionalTmplFunc = template.FuncMap{
-	"ToUpper": strings.ToUpper,
-	"Title":   strings.Title,
-	"ToLower": strings.ToLower,
+	"ToUpper":    strings.ToUpper,
+	"Title":      strings.Title,
+	"ToLower":    strings.ToLower,
+	"PublicVar":  PublicVarName,
+	"PrivateVar": PrivateVarName,
 }
 
 func copyDirRecursively(srcDir, outputDir string) error {
@@ -65,6 +67,11 @@ func copyDirRecursively(srcDir, outputDir string) error {
 			logger.Errorf("handle file %s error %v", path, err)
 			// end walk
 			return err
+		}
+
+		// skip git dir
+		if info.Name() == ".git" {
+			return filepath.SkipDir
 		}
 
 		if info.IsDir() {
