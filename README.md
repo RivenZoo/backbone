@@ -24,3 +24,9 @@ A basic library for golang.
   ```
   projcreator -project test -gitRepo https://github.com/RivenZoo/injectgo.git -output /tmp/injectgo -gitVer v0.4.0
   ```
+
+### Use docker
+
+  ```
+  docker run --rm -v /tmp:/tmp rivenzoe/projcreator:latest projcreator -project test -gitRepo https://github.com/RivenZoo/injectgo.git -output /tmp/injectgo -gitVer v0.4.0
+  ```
